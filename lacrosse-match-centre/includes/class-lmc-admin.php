@@ -22,10 +22,48 @@ class LMC_Admin {
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'register_settings'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
+        add_action('admin_notices', array($this, 'show_admin_notices'));
         
         // AJAX handlers
         add_action('wp_ajax_lmc_scrape_competition', array($this, 'ajax_scrape_competition'));
         add_action('wp_ajax_lmc_clear_cache', array($this, 'ajax_clear_cache'));
+    }
+    
+    /**
+     * Show admin notices
+     */
+    public function show_admin_notices() {
+        $settings = get_option('lmc_settings', array());
+        $current_competition = isset($settings['current_competition']) ? $settings['current_competition'] : '';
+        $has_competitions = isset($settings['competitions']) && !empty($settings['competitions']);
+        
+        // Only show on relevant pages
+        $screen = get_current_screen();
+        if (!$screen || !in_array($screen->id, array('dashboard', 'settings_page_lacrosse-match-centre', 'edit-page', 'edit-post'))) {
+            return;
+        }
+        
+        // Warning if no current competition is set
+        if ($has_competitions && empty($current_competition)) {
+            ?>
+            <div class="notice notice-warning is-dismissible">
+                <p><strong>Lacrosse Match Centre:</strong> No current competition is selected. 
+                <a href="<?php echo admin_url('options-general.php?page=lacrosse-match-centre'); ?>">Select a competition</a> 
+                to display data in blocks and widgets.</p>
+            </div>
+            <?php
+        }
+        
+        // Info if no competitions configured
+        if (!$has_competitions) {
+            ?>
+            <div class="notice notice-info is-dismissible">
+                <p><strong>Lacrosse Match Centre:</strong> No competitions configured yet. 
+                <a href="<?php echo admin_url('options-general.php?page=lacrosse-match-centre'); ?>">Add a competition</a> 
+                to start displaying match data.</p>
+            </div>
+            <?php
+        }
     }
     
     /**

@@ -145,7 +145,10 @@ class LMC_Blocks {
      */
     public function render_ladder_block($attributes) {
         $title = isset($attributes['title']) ? $attributes['title'] : 'Competition Ladder';
-        $comp_id = isset($attributes['compId']) ? $attributes['compId'] : null;
+        $comp_id = isset($attributes['compId']) && !empty($attributes['compId']) ? $attributes['compId'] : null;
+        
+        error_log('LMC Blocks: Rendering ladder block with compId: ' . ($comp_id ? $comp_id : 'NULL (will use current)'));
+        error_log('LMC Blocks: Block attributes: ' . print_r($attributes, true));
         
         ob_start();
         
@@ -157,6 +160,7 @@ class LMC_Blocks {
         
         // Get ladder data
         $ladder = LMC_Data::get_ladder($comp_id);
+        error_log('LMC Blocks: Ladder data result: ' . ($ladder ? count($ladder) . ' teams' : 'FALSE/NULL'));
         
         if ($ladder && !empty($ladder)) {
             echo '<div class="lmc-ladder">';
@@ -203,8 +207,10 @@ class LMC_Blocks {
      */
     public function render_upcoming_block($attributes) {
         $title = isset($attributes['title']) ? $attributes['title'] : 'Upcoming Games';
-        $comp_id = isset($attributes['compId']) ? $attributes['compId'] : null;
+        $comp_id = isset($attributes['compId']) && !empty($attributes['compId']) ? $attributes['compId'] : null;
         $limit = isset($attributes['limit']) ? absint($attributes['limit']) : 5;
+        
+        error_log('LMC Blocks: Rendering upcoming block with compId: ' . ($comp_id ? $comp_id : 'NULL (will use current)'));
         
         ob_start();
         
@@ -216,6 +222,7 @@ class LMC_Blocks {
         
         // Get upcoming games
         $games = LMC_Data::get_upcoming_games($comp_id, $limit);
+        error_log('LMC Blocks: Upcoming games result: ' . ($games ? count($games) . ' games' : 'FALSE/NULL'));
         
         if ($games && !empty($games)) {
             echo '<div class="lmc-upcoming">';
@@ -258,8 +265,10 @@ class LMC_Blocks {
      */
     public function render_results_block($attributes) {
         $title = isset($attributes['title']) ? $attributes['title'] : 'Recent Results';
-        $comp_id = isset($attributes['compId']) ? $attributes['compId'] : null;
+        $comp_id = isset($attributes['compId']) && !empty($attributes['compId']) ? $attributes['compId'] : null;
         $limit = isset($attributes['limit']) ? absint($attributes['limit']) : 5;
+        
+        error_log('LMC Blocks: Rendering results block with compId: ' . ($comp_id ? $comp_id : 'NULL (will use current)'));
         
         ob_start();
         
@@ -271,6 +280,7 @@ class LMC_Blocks {
         
         // Get results
         $results = LMC_Data::get_results($comp_id, $limit);
+        error_log('LMC Blocks: Results data result: ' . ($results ? count($results) . ' results' : 'FALSE/NULL'));
         
         if ($results && !empty($results)) {
             echo '<div class="lmc-results">';

@@ -32,7 +32,9 @@ class LMC_Data {
      */
     private static function get_current_competition() {
         $settings = get_option('lmc_settings', array());
-        return isset($settings['current_competition']) ? $settings['current_competition'] : false;
+        $comp_id = isset($settings['current_competition']) ? $settings['current_competition'] : false;
+        error_log('LMC Data: get_current_competition() returning: ' . ($comp_id ? $comp_id : 'false'));
+        return $comp_id;
     }
     
     /**
@@ -109,9 +111,11 @@ class LMC_Data {
     public static function get_ladder($comp_id = null) {
         if (!$comp_id) {
             $comp_id = self::get_current_competition();
+            error_log('LMC Data: No comp_id provided, using current competition: ' . ($comp_id ? $comp_id : 'NONE'));
         }
         
         if (!$comp_id) {
+            error_log('LMC Data: No competition ID available for ladder');
             return false;
         }
         
@@ -120,18 +124,23 @@ class LMC_Data {
         $cached_data = get_transient($cache_key);
         
         if ($cached_data !== false) {
+            error_log('LMC Data: Returning cached ladder data for ' . $comp_id);
             return $cached_data;
         }
         
         // Read from file
-        $data = self::read_json_file("ladder-{$comp_id}.json");
+        $filename = "ladder-{$comp_id}.json";
+        error_log('LMC Data: Reading ladder from file: ' . $filename);
+        $data = self::read_json_file($filename);
         
         if ($data === false) {
+            error_log('LMC Data: Failed to read ladder file: ' . LMC_DATA_DIR . $filename);
             return false;
         }
         
         // Cache the data
         set_transient($cache_key, $data, self::get_cache_duration());
+        error_log('LMC Data: Successfully loaded ladder with ' . count($data) . ' teams');
         
         return $data;
     }
@@ -146,9 +155,11 @@ class LMC_Data {
     public static function get_upcoming_games($comp_id = null, $limit = null) {
         if (!$comp_id) {
             $comp_id = self::get_current_competition();
+            error_log('LMC Data: No comp_id provided for upcoming games, using current: ' . ($comp_id ? $comp_id : 'NONE'));
         }
         
         if (!$comp_id) {
+            error_log('LMC Data: No competition ID available for upcoming games');
             return false;
         }
         
@@ -157,18 +168,23 @@ class LMC_Data {
         $cached_data = get_transient($cache_key);
         
         if ($cached_data !== false) {
+            error_log('LMC Data: Returning cached upcoming games for ' . $comp_id);
             return $limit ? array_slice($cached_data, 0, $limit) : $cached_data;
         }
         
         // Read from file
-        $data = self::read_json_file("upcoming-{$comp_id}.json");
+        $filename = "upcoming-{$comp_id}.json";
+        error_log('LMC Data: Reading upcoming games from file: ' . $filename);
+        $data = self::read_json_file($filename);
         
         if ($data === false) {
+            error_log('LMC Data: Failed to read upcoming games file: ' . LMC_DATA_DIR . $filename);
             return false;
         }
         
         // Cache the data
         set_transient($cache_key, $data, self::get_cache_duration());
+        error_log('LMC Data: Successfully loaded ' . count($data) . ' upcoming games');
         
         return $limit ? array_slice($data, 0, $limit) : $data;
     }
@@ -183,9 +199,11 @@ class LMC_Data {
     public static function get_results($comp_id = null, $limit = null) {
         if (!$comp_id) {
             $comp_id = self::get_current_competition();
+            error_log('LMC Data: No comp_id provided for results, using current: ' . ($comp_id ? $comp_id : 'NONE'));
         }
         
         if (!$comp_id) {
+            error_log('LMC Data: No competition ID available for results');
             return false;
         }
         
@@ -194,18 +212,23 @@ class LMC_Data {
         $cached_data = get_transient($cache_key);
         
         if ($cached_data !== false) {
+            error_log('LMC Data: Returning cached results for ' . $comp_id);
             return $limit ? array_slice($cached_data, 0, $limit) : $cached_data;
         }
         
         // Read from file
-        $data = self::read_json_file("results-{$comp_id}.json");
+        $filename = "results-{$comp_id}.json";
+        error_log('LMC Data: Reading results from file: ' . $filename);
+        $data = self::read_json_file($filename);
         
         if ($data === false) {
+            error_log('LMC Data: Failed to read results file: ' . LMC_DATA_DIR . $filename);
             return false;
         }
         
         // Cache the data
         set_transient($cache_key, $data, self::get_cache_duration());
+        error_log('LMC Data: Successfully loaded ' . count($data) . ' results');
         
         return $limit ? array_slice($data, 0, $limit) : $data;
     }
