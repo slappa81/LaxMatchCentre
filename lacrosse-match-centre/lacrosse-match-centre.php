@@ -52,6 +52,12 @@ class Lacrosse_Match_Centre {
         // Enqueue styles
         add_action('wp_enqueue_scripts', array($this, 'enqueue_styles'));
         
+        // Enqueue block editor assets
+        add_action('enqueue_block_editor_assets', array($this, 'enqueue_block_editor_assets'));
+        
+        // Register block category
+        add_filter('block_categories_all', array($this, 'register_block_category'), 10, 2);
+        
         // Activation/Deactivation hooks
         register_activation_hook(__FILE__, array($this, 'activate'));
         register_deactivation_hook(__FILE__, array($this, 'deactivate'));
@@ -65,6 +71,7 @@ class Lacrosse_Match_Centre {
             'includes/class-lmc-scraper.php',
             'includes/class-lmc-data.php',
             'includes/class-lmc-admin.php',
+            'includes/class-lmc-blocks.php',
             'includes/class-lmc-ladder-widget.php',
             'includes/class-lmc-upcoming-widget.php',
             'includes/class-lmc-results-widget.php'
@@ -85,6 +92,14 @@ class Lacrosse_Match_Centre {
         // Initialize admin interface
         if (is_admin()) {
             new LMC_Admin();
+        }
+        
+        // Initialize blocks
+        if (class_exists('LMC_Blocks')) {
+            new LMC_Blocks();
+            error_log('LMC: Blocks class initialized');
+        } else {
+            error_log('LMC: Blocks class not found');
         }
     }
     
@@ -107,6 +122,40 @@ class Lacrosse_Match_Centre {
             array(),
             LMC_VERSION
         );
+        
+        // Register block styles for front-end
+        wp_register_style(
+            'lacrosse-match-centre-blocks',
+            LMC_PLUGIN_URL . 'assets/blocks.css',
+            array(),
+            LMC_VERSION
+        );
+        wp_enqueue_style('lacrosse-match-centre-blocks');
+    }
+    
+    /**
+     * Register custom block category
+     */
+    public function register_block_category($categories, $post) {
+        return array_merge(
+            array(
+                array(
+                    'slug'  => 'lacrosse-match-centre',
+                    'title' => __('Lacrosse Match Centre', 'lacrosse-match-centre'),
+                    'icon'  => 'awards'
+                )
+            ),
+            $categories
+        );
+    }
+    
+    /**
+     * Enqueue block editor assets
+     */
+    public function enqueue_block_editor_assets() {
+        error_log('LMC: Enqueuing block editor assets (via enqueue_block_editor_assets hook)');
+        // Assets are now registered in LMC_Blocks class
+        // This hook just logs that it's being called
     }
     
     /**
