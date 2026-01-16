@@ -236,6 +236,10 @@ class LMC_Data {
     public static function clear_all_cache() {
         global $wpdb;
         
+        if (!isset($wpdb) || !is_object($wpdb)) {
+            return false;
+        }
+        
         // Delete all transients with our prefix
         $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_lmc_%' OR option_name LIKE '_transient_timeout_lmc_%'");
         

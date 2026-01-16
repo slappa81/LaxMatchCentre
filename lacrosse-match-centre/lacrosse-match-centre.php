@@ -18,10 +18,18 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('LMC_VERSION', '1.0.0');
-define('LMC_PLUGIN_DIR', plugin_dir_path(__FILE__));
-define('LMC_PLUGIN_URL', plugin_dir_url(__FILE__));
-define('LMC_DATA_DIR', LMC_PLUGIN_DIR . 'data/');
+if (!defined('LMC_VERSION')) {
+    define('LMC_VERSION', '1.0.0');
+}
+if (!defined('LMC_PLUGIN_DIR')) {
+    define('LMC_PLUGIN_DIR', plugin_dir_path(__FILE__));
+}
+if (!defined('LMC_PLUGIN_URL')) {
+    define('LMC_PLUGIN_URL', plugin_dir_url(__FILE__));
+}
+if (!defined('LMC_DATA_DIR')) {
+    define('LMC_DATA_DIR', LMC_PLUGIN_DIR . 'data/');
+}
 
 /**
  * Main plugin class
@@ -53,12 +61,21 @@ class Lacrosse_Match_Centre {
      * Load required files
      */
     private function load_dependencies() {
-        require_once LMC_PLUGIN_DIR . 'includes/class-lmc-scraper.php';
-        require_once LMC_PLUGIN_DIR . 'includes/class-lmc-data.php';
-        require_once LMC_PLUGIN_DIR . 'includes/class-lmc-admin.php';
-        require_once LMC_PLUGIN_DIR . 'includes/class-lmc-ladder-widget.php';
-        require_once LMC_PLUGIN_DIR . 'includes/class-lmc-upcoming-widget.php';
-        require_once LMC_PLUGIN_DIR . 'includes/class-lmc-results-widget.php';
+        $files = array(
+            'includes/class-lmc-scraper.php',
+            'includes/class-lmc-data.php',
+            'includes/class-lmc-admin.php',
+            'includes/class-lmc-ladder-widget.php',
+            'includes/class-lmc-upcoming-widget.php',
+            'includes/class-lmc-results-widget.php'
+        );
+        
+        foreach ($files as $file) {
+            $filepath = LMC_PLUGIN_DIR . $file;
+            if (file_exists($filepath)) {
+                require_once $filepath;
+            }
+        }
     }
     
     /**
@@ -96,6 +113,11 @@ class Lacrosse_Match_Centre {
      * Plugin activation
      */
     public function activate() {
+        // Load dependencies if not already loaded
+        if (!class_exists('LMC_Data')) {
+            $this->load_dependencies();
+        }
+        
         // Create data directory if it doesn't exist
         if (!file_exists(LMC_DATA_DIR)) {
             wp_mkdir_p(LMC_DATA_DIR);
@@ -116,7 +138,7 @@ class Lacrosse_Match_Centre {
         $htaccess_file = LMC_DATA_DIR . '.htaccess';
         if (!file_exists($htaccess_file)) {
             $htaccess_content = "# Protect data directory\nOrder deny,allow\nDeny from all\n<Files ~ \"\\.(json)$\">\n    Allow from all\n</Files>";
-            file_put_contents($htaccess_file, $htaccess_content);
+            @file_put_contents($htaccess_file, $htaccess_content);
         }
     }
     
@@ -125,9 +147,13 @@ class Lacrosse_Match_Centre {
      */
     public function deactivate() {
         // Clear all cached data
-        LMC_Data::clear_all_cache();
+        if (class_exists('LMC_Data')) {
+            LMC_Data::clear_all_cache();
+        }
     }
 }
 
 // Initialize the plugin
-new Lacrosse_Match_Centre();
+if (!isset($GLOBALS['lacrosse_match_centre'])) {
+    $GLOBALS['lacrosse_match_centre'] = new Lacrosse_Match_Centre();
+}

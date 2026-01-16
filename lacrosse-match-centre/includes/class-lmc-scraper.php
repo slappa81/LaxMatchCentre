@@ -30,6 +30,8 @@ class LMC_Scraper {
     public function get_ladder($comp_id, $round_num) {
         $url = "{$this->base_url}/comp_ladder.cgi?c={$comp_id}&round={$round_num}&pool=-1";
         
+        error_log('LMC Scraper: Fetching ladder from ' . $url);
+        
         $response = wp_remote_get($url, array(
             'timeout' => 30,
             'user-agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -40,9 +42,28 @@ class LMC_Scraper {
             return false;
         }
         
+        $status_code = wp_remote_retrieve_response_code($response);
+        if ($status_code !== 200) {
+            error_log('LMC Scraper: Ladder request returned status ' . $status_code);
+            return false;
+        }
+        
         $body = wp_remote_retrieve_body($response);
         
-        return $this->parse_ladder($body);
+        if (empty($body)) {
+            error_log('LMC Scraper: Empty response body for ladder');
+            return false;
+        }
+        
+        $result = $this->parse_ladder($body);
+        
+        if (empty($result)) {
+            error_log('LMC Scraper: Failed to parse ladder data');
+        } else {
+            error_log('LMC Scraper: Successfully parsed ' . count($result) . ' teams');
+        }
+        
+        return $result;
     }
     
     /**
@@ -82,7 +103,7 @@ class LMC_Scraper {
                     'drawn' => (int)trim($cells->item(5)->textContent),
                     'for' => (int)trim($cells->item(6)->textContent),
                     'against' => (int)trim($cells->item(7)->textContent),
-                    'percentage' => isset($cells->item(8)) ? trim($cells->item(8)->textContent) : '0%',
+                    'percentage' => ($cells->length > 8) ? trim($cells->item(8)->textContent) : '0%',
                     'points' => (int)trim($cells->item($cells->length - 1)->textContent)
                 );
                 
@@ -112,7 +133,13 @@ class LMC_Scraper {
         ));
         
         if (is_wp_error($response)) {
-            error_log('LMC Scraper: Failed to fetch fixtures - ' . $response->get_error_message());
+            error_log('LMC Scraper: Failed to fetch fixtures round ' . $round_num . ' - ' . $response->get_error_message());
+            return false;
+        }
+        
+        $status_code = wp_remote_retrieve_response_code($response);
+        if ($status_code !== 200) {
+            error_log('LMC Scraper: Fixtures round ' . $round_num . ' returned status ' . $status_code);
             return false;
         }
         
@@ -146,17 +173,17 @@ class LMC_Scraper {
             if ($cells->length >= 5) {
                 // Extract date and time
                 $date_str = trim($cells->item(0)->textContent);
-                $time_str = isset($cells->item(1)) ? trim($cells->item(1)->textContent) : '';
+                $time_str = ($cells->length > 1) ? trim($cells->item(1)->textContent) : '';
                 
                 // Extract teams
                 $home_team = trim($cells->item(2)->textContent);
                 $away_team = trim($cells->item(3)->textContent);
                 
                 // Extract venue
-                $venue = isset($cells->item(4)) ? trim($cells->item(4)->textContent) : '';
+                $venue = ($cells->length > 4) ? trim($cells->item(4)->textContent) : '';
                 
                 // Extract score if available (completed games)
-                $score_cell = isset($cells->item(5)) ? trim($cells->item(5)->textContent) : '';
+                $score_cell = ($cells->length > 5) ? trim($cells->item(5)->textContent) : '';
                 $home_score = null;
                 $away_score = null;
                 $completed = false;
@@ -203,6 +230,8 @@ class LMC_Scraper {
     public function fetch_all_fixtures($comp_id, $comp_name, $current_round, $max_rounds = 18) {
         $all_fixtures = array();
         
+        error_log('LMC Scraper: Fetching fixtures for ' . $max_rounds . ' rounds');
+        
         // Fetch fixtures for all rounds
         for ($round = 1; $round <= $max_rounds; $round++) {
             $fixtures = $this->get_round_fixtures($comp_id, $round);
@@ -216,16 +245,25 @@ class LMC_Scraper {
         }
         
         if (empty($all_fixtures)) {
+            error_log('LMC Scraper: No fixtures found in any round');
             return false;
         }
         
+        error_log('LMC Scraper: Total fixtures found: ' . count($all_fixtures));
+        
         // Save all fixtures
         $fixtures_file = LMC_DATA_DIR . "fixtures-{$comp_id}.json";
-        file_put_contents($fixtures_file, json_encode($all_fixtures, JSON_PRETTY_PRINT));
+        $result = file_put_contents($fixtures_file, json_encode($all_fixtures, JSON_PRETTY_PRINT));
+        if ($result === false) {
+            error_log('LMC Scraper: Failed to write fixtures file');
+            return false;
+        }
         
         // Separate upcoming games and results
         $upcoming = $this->get_upcoming_games($all_fixtures);
         $results = $this->get_recent_results($all_fixtures);
+        
+        error_log('LMC Scraper: Upcoming games: ' . count($upcoming) . ', Results: ' . count($results));
         
         // Save upcoming games
         $upcoming_file = LMC_DATA_DIR . "upcoming-{$comp_id}.json";
@@ -309,18 +347,43 @@ class LMC_Scraper {
             'message' => ''
         );
         
+        error_log('LMC Scraper: Starting scrape for competition ' . $comp_id . ' (' . $comp_name . ')');
+        
+        // Check if data directory exists and is writable
+        if (!file_exists(LMC_DATA_DIR)) {
+            error_log('LMC Scraper: Data directory does not exist: ' . LMC_DATA_DIR);
+            $status['message'] = 'Data directory does not exist';
+            return $status;
+        }
+        
+        if (!is_writable(LMC_DATA_DIR)) {
+            error_log('LMC Scraper: Data directory is not writable: ' . LMC_DATA_DIR);
+            $status['message'] = 'Data directory is not writable';
+            return $status;
+        }
+        
         // Fetch ladder
         $ladder = $this->get_ladder($comp_id, $current_round);
         if ($ladder && !empty($ladder)) {
             $ladder_file = LMC_DATA_DIR . "ladder-{$comp_id}.json";
-            file_put_contents($ladder_file, json_encode($ladder, JSON_PRETTY_PRINT));
-            $status['ladder'] = true;
+            $result = file_put_contents($ladder_file, json_encode($ladder, JSON_PRETTY_PRINT));
+            if ($result === false) {
+                error_log('LMC Scraper: Failed to write ladder file: ' . $ladder_file);
+            } else {
+                error_log('LMC Scraper: Ladder saved successfully');
+                $status['ladder'] = true;
+            }
+        } else {
+            error_log('LMC Scraper: Failed to fetch or parse ladder');
         }
         
         // Fetch fixtures
         $fixtures_success = $this->fetch_all_fixtures($comp_id, $comp_name, $current_round, $max_rounds);
         if ($fixtures_success) {
+            error_log('LMC Scraper: Fixtures saved successfully');
             $status['fixtures'] = true;
+        } else {
+            error_log('LMC Scraper: Failed to fetch fixtures');
         }
         
         // Set overall status
@@ -329,10 +392,12 @@ class LMC_Scraper {
             $status['message'] = 'Successfully scraped all data';
         } elseif ($status['ladder'] || $status['fixtures']) {
             $status['success'] = true;
-            $status['message'] = 'Partially scraped data';
+            $status['message'] = 'Partially scraped data - check error log for details';
         } else {
-            $status['message'] = 'Failed to scrape data';
+            $status['message'] = 'Failed to scrape data - check error log for details';
         }
+        
+        error_log('LMC Scraper: Scrape completed with status: ' . $status['message']);
         
         return $status;
     }
