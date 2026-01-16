@@ -1,0 +1,362 @@
+/**
+ * Lacrosse Match Centre Styles
+ *
+ * @package Lacrosse_Match_Centre
+ */
+
+/* General Widget Styles */
+.lmc-ladder-widget,
+.lmc-upcoming-widget,
+.lmc-results-widget {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.lmc-no-data {
+    padding: 15px;
+    background: #f9f9f9;
+    border-left: 3px solid #ffba00;
+    color: #666;
+    font-style: italic;
+}
+
+/* Ladder Styles */
+.lmc-ladder {
+    overflow-x: auto;
+    margin: 0;
+}
+
+.lmc-ladder-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+}
+
+.lmc-ladder-table thead {
+    background: #2c3e50;
+    color: #fff;
+}
+
+.lmc-ladder-table th {
+    padding: 10px 8px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.lmc-ladder-table th.pos,
+.lmc-ladder-table td.pos,
+.lmc-ladder-table th.played,
+.lmc-ladder-table td.played,
+.lmc-ladder-table th.won,
+.lmc-ladder-table td.won,
+.lmc-ladder-table th.lost,
+.lmc-ladder-table td.lost,
+.lmc-ladder-table th.drawn,
+.lmc-ladder-table td.drawn,
+.lmc-ladder-table th.points,
+.lmc-ladder-table td.points {
+    text-align: center;
+    width: 40px;
+}
+
+.lmc-ladder-table td {
+    padding: 12px 8px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.lmc-ladder-table tbody tr:hover {
+    background: #f5f5f5;
+}
+
+.lmc-ladder-table tbody tr:nth-child(even) {
+    background: #fafafa;
+}
+
+.lmc-ladder-table tbody tr:nth-child(even):hover {
+    background: #f0f0f0;
+}
+
+.lmc-ladder-table td.team {
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.lmc-ladder-table td.points {
+    font-weight: 700;
+    color: #27ae60;
+}
+
+/* Upcoming Games Styles */
+.lmc-upcoming {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.lmc-game {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-left: 4px solid #3498db;
+    padding: 15px;
+    border-radius: 4px;
+    transition: box-shadow 0.2s;
+}
+
+.lmc-game:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.lmc-game-round {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #3498db;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-bottom: 5px;
+}
+
+.lmc-game-date {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 3px;
+}
+
+.lmc-game-time {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 10px;
+}
+
+.lmc-game-teams {
+    margin: 12px 0;
+}
+
+.lmc-team-home,
+.lmc-team-away {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 15px;
+    padding: 5px 0;
+}
+
+.lmc-vs {
+    text-align: center;
+    color: #999;
+    font-size: 12px;
+    text-transform: uppercase;
+    margin: 5px 0;
+}
+
+.lmc-game-venue {
+    font-size: 12px;
+    color: #666;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.lmc-game-venue::before {
+    content: "📍 ";
+}
+
+/* Results Styles */
+.lmc-results {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.lmc-result {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-left: 4px solid #27ae60;
+    padding: 15px;
+    border-radius: 4px;
+    transition: box-shadow 0.2s;
+}
+
+.lmc-result:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.lmc-result-round {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #27ae60;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-bottom: 5px;
+}
+
+.lmc-result-date {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.lmc-result-teams {
+    margin: 12px 0;
+}
+
+.lmc-result-team {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.lmc-result-team-name {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 15px;
+    flex: 1;
+}
+
+.lmc-result-score {
+    font-weight: 700;
+    font-size: 18px;
+    color: #27ae60;
+    min-width: 40px;
+    text-align: right;
+}
+
+.lmc-result-home {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.lmc-result-venue {
+    font-size: 12px;
+    color: #666;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.lmc-result-venue::before {
+    content: "📍 ";
+}
+
+/* Responsive Design */
+@media screen and (max-width: 768px) {
+    .lmc-ladder-table {
+        font-size: 12px;
+    }
+    
+    .lmc-ladder-table th,
+    .lmc-ladder-table td {
+        padding: 8px 4px;
+    }
+    
+    .lmc-ladder-table th {
+        font-size: 10px;
+    }
+    
+    .lmc-ladder-table th.pos,
+    .lmc-ladder-table td.pos,
+    .lmc-ladder-table th.played,
+    .lmc-ladder-table td.played,
+    .lmc-ladder-table th.won,
+    .lmc-ladder-table td.won,
+    .lmc-ladder-table th.lost,
+    .lmc-ladder-table td.lost,
+    .lmc-ladder-table th.drawn,
+    .lmc-ladder-table td.drawn,
+    .lmc-ladder-table th.points,
+    .lmc-ladder-table td.points {
+        width: 30px;
+    }
+    
+    .lmc-game,
+    .lmc-result {
+        padding: 12px;
+    }
+    
+    .lmc-team-home,
+    .lmc-team-away,
+    .lmc-result-team-name {
+        font-size: 14px;
+    }
+    
+    .lmc-result-score {
+        font-size: 16px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .lmc-ladder-table {
+        font-size: 11px;
+    }
+    
+    .lmc-ladder-table th,
+    .lmc-ladder-table td {
+        padding: 6px 3px;
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .lmc-ladder-table {
+        background: #1e1e1e;
+    }
+    
+    .lmc-ladder-table td {
+        border-bottom-color: #333;
+    }
+    
+    .lmc-ladder-table tbody tr:nth-child(even) {
+        background: #2a2a2a;
+    }
+    
+    .lmc-ladder-table tbody tr:hover,
+    .lmc-ladder-table tbody tr:nth-child(even):hover {
+        background: #333;
+    }
+    
+    .lmc-game,
+    .lmc-result {
+        background: #1e1e1e;
+        border-color: #333;
+    }
+    
+    .lmc-game:hover,
+    .lmc-result:hover {
+        box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
+    }
+    
+    .lmc-ladder-table td.team,
+    .lmc-team-home,
+    .lmc-team-away,
+    .lmc-result-team-name {
+        color: #e0e0e0;
+    }
+    
+    .lmc-game-venue,
+    .lmc-result-venue,
+    .lmc-game-date,
+    .lmc-result-date {
+        color: #999;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .lmc-game,
+    .lmc-result {
+        border: 1px solid #000;
+        page-break-inside: avoid;
+        margin-bottom: 10px;
+    }
+    
+    .lmc-ladder-table {
+        border: 1px solid #000;
+    }
+    
+    .lmc-ladder-table th,
+    .lmc-ladder-table td {
+        border: 1px solid #000;
+    }
+}

@@ -1,0 +1,133 @@
+<?php
+/**
+ * Plugin Name: Lacrosse Match Centre
+ * Plugin URI: https://github.com/slappa81/LaxMatchCentre
+ * Description: Display lacrosse league data from SportsTG with built-in scraper. Shows ladders, upcoming games, and results.
+ * Version: 1.0.0
+ * Author: Williamstown Lacrosse Club
+ * Author URI: https://williamstownlacrosse.com
+ * License: MIT
+ * Text Domain: lacrosse-match-centre
+ * Requires at least: 5.0
+ * Requires PHP: 7.0
+ */
+
+// Exit if accessed directly
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+// Define plugin constants
+define('LMC_VERSION', '1.0.0');
+define('LMC_PLUGIN_DIR', plugin_dir_path(__FILE__));
+define('LMC_PLUGIN_URL', plugin_dir_url(__FILE__));
+define('LMC_DATA_DIR', LMC_PLUGIN_DIR . 'data/');
+
+/**
+ * Main plugin class
+ */
+class Lacrosse_Match_Centre {
+    
+    /**
+     * Constructor
+     */
+    public function __construct() {
+        // Load dependencies
+        $this->load_dependencies();
+        
+        // Initialize plugin
+        add_action('plugins_loaded', array($this, 'init'));
+        
+        // Register widgets
+        add_action('widgets_init', array($this, 'register_widgets'));
+        
+        // Enqueue styles
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_styles'));
+        
+        // Activation/Deactivation hooks
+        register_activation_hook(__FILE__, array($this, 'activate'));
+        register_deactivation_hook(__FILE__, array($this, 'deactivate'));
+    }
+    
+    /**
+     * Load required files
+     */
+    private function load_dependencies() {
+        require_once LMC_PLUGIN_DIR . 'includes/class-lmc-scraper.php';
+        require_once LMC_PLUGIN_DIR . 'includes/class-lmc-data.php';
+        require_once LMC_PLUGIN_DIR . 'includes/class-lmc-admin.php';
+        require_once LMC_PLUGIN_DIR . 'includes/class-lmc-ladder-widget.php';
+        require_once LMC_PLUGIN_DIR . 'includes/class-lmc-upcoming-widget.php';
+        require_once LMC_PLUGIN_DIR . 'includes/class-lmc-results-widget.php';
+    }
+    
+    /**
+     * Initialize the plugin
+     */
+    public function init() {
+        // Initialize admin interface
+        if (is_admin()) {
+            new LMC_Admin();
+        }
+    }
+    
+    /**
+     * Register widgets
+     */
+    public function register_widgets() {
+        register_widget('LMC_Ladder_Widget');
+        register_widget('LMC_Upcoming_Widget');
+        register_widget('LMC_Results_Widget');
+    }
+    
+    /**
+     * Enqueue plugin styles
+     */
+    public function enqueue_styles() {
+        wp_enqueue_style(
+            'lacrosse-match-centre',
+            LMC_PLUGIN_URL . 'assets/style.css',
+            array(),
+            LMC_VERSION
+        );
+    }
+    
+    /**
+     * Plugin activation
+     */
+    public function activate() {
+        // Create data directory if it doesn't exist
+        if (!file_exists(LMC_DATA_DIR)) {
+            wp_mkdir_p(LMC_DATA_DIR);
+        }
+        
+        // Set default options
+        $default_options = array(
+            'cache_duration' => 3600,
+            'competitions' => array(),
+            'current_competition' => ''
+        );
+        
+        if (!get_option('lmc_settings')) {
+            add_option('lmc_settings', $default_options);
+        }
+        
+        // Create .htaccess to protect data directory
+        $htaccess_file = LMC_DATA_DIR . '.htaccess';
+        if (!file_exists($htaccess_file)) {
+            $htaccess_content = "# Protect data directory\nOrder deny,allow\nDeny from all\n<Files ~ \"\\.(json)$\">\n    Allow from all\n</Files>";
+            file_put_contents($htaccess_file, $htaccess_content);
+        }
+    }
+    
+    /**
+     * Plugin deactivation
+     */
+    public function deactivate() {
+        // Clear all cached data
+        LMC_Data::clear_all_cache();
+    }
+}
+
+// Initialize the plugin
+new Lacrosse_Match_Centre();
