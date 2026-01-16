@@ -98,9 +98,7 @@ class LMC_Admin {
             foreach ($input['competitions'] as $comp) {
                 $sanitized['competitions'][] = array(
                     'id' => sanitize_text_field($comp['id']),
-                    'name' => sanitize_text_field($comp['name']),
-                    'current_round' => absint($comp['current_round']),
-                    'max_rounds' => absint($comp['max_rounds'])
+                    'name' => sanitize_text_field($comp['name'])
                 );
             }
         } else {
@@ -174,17 +172,15 @@ class LMC_Admin {
                     var row = btn.closest('.lmc-competition-row');
                     var compId = row.find('.comp-id').val();
                     var compName = row.find('.comp-name').val();
-                    var currentRound = row.find('.current-round').val();
-                    var maxRounds = row.find('.max-rounds').val();
                     var statusDiv = row.find('.scrape-status');
                     
-                    if (!compId || !compName || !currentRound || !maxRounds) {
-                        alert('Please fill in all competition fields before scraping.');
+                    if (!compId || !compName) {
+                        alert('Please fill in Competition ID and Name before scraping.');
                         return;
                     }
                     
                     btn.prop('disabled', true).text('Scraping...');
-                    statusDiv.html('<span style=\"color: blue;\">⏳ Scraping data...</span>');
+                    statusDiv.html('<span style=\"color: blue;\">⏳ Scraping data (auto-detecting rounds)...</span>');
                     
                     $.ajax({
                         url: ajaxurl,
@@ -193,9 +189,7 @@ class LMC_Admin {
                             action: 'lmc_scrape_competition',
                             nonce: '" . wp_create_nonce('lmc_scrape_nonce') . "',
                             comp_id: compId,
-                            comp_name: compName,
-                            current_round: currentRound,
-                            max_rounds: maxRounds
+                            comp_name: compName
                         },
                         success: function(response) {
                             if (response.success) {
@@ -286,15 +280,13 @@ class LMC_Admin {
         
         $comp_id = sanitize_text_field($_POST['comp_id']);
         $comp_name = sanitize_text_field($_POST['comp_name']);
-        $current_round = absint($_POST['current_round']);
-        $max_rounds = absint($_POST['max_rounds']);
         
-        if (empty($comp_id) || empty($comp_name) || !$current_round || !$max_rounds) {
+        if (empty($comp_id) || empty($comp_name)) {
             wp_send_json_error(array('message' => 'Invalid parameters'));
         }
         
         $scraper = new LMC_Scraper();
-        $result = $scraper->scrape_competition($comp_id, $comp_name, $current_round, $max_rounds);
+        $result = $scraper->scrape_competition($comp_id, $comp_name);
         
         if ($result['success']) {
             // Clear cache for this competition
@@ -341,7 +333,10 @@ class LMC_Admin {
                 ?>
                 
                 <h2>Manage Competitions</h2>
-                <p>Add competitions and scrape data from SportsTG. Competition ID can be found in the SportsTG URL.</p>
+                <p>Add competitions and scrape data from MyGameDay/SportsTG.</p>
+                <p><strong>Competition ID Format:</strong> <code>0-&lt;Association&gt;-0-&lt;Competition&gt;-0</code></p>
+                <p><strong>Example:</strong> If your Association is <code>1064</code> and Competition is <code>646414</code>, enter: <code>0-1064-0-646414-0</code></p>
+                <p>Find these in your GameDay website URL. See <a href="https://helpdesk.mygameday.app/help/adding-and-changing-the-match-centre-ids" target="_blank">MyGameDay Help</a> for details.</p>
                 
                 <div id="lmc-competitions-list">
                     <?php foreach ($competitions as $index => $comp): ?>
@@ -354,11 +349,9 @@ class LMC_Admin {
                         </label>
                         <br><br>
                         
-                        <input type="text" name="lmc_settings[competitions][<?php echo $index; ?>][id]" class="comp-id regular-text" placeholder="Competition ID (e.g., 140768)" value="<?php echo esc_attr($comp['id']); ?>">
+                        <input type="text" name="lmc_settings[competitions][<?php echo $index; ?>][id]" class="comp-id regular-text" placeholder="Competition ID (e.g., 0-1064-0-646414-0)" value="<?php echo esc_attr($comp['id']); ?>">
                         <input type="text" name="lmc_settings[competitions][<?php echo $index; ?>][name]" class="comp-name regular-text" placeholder="Competition Name" value="<?php echo esc_attr($comp['name']); ?>">
                         <br>
-                        <input type="number" name="lmc_settings[competitions][<?php echo $index; ?>][current_round]" class="current-round" placeholder="Current Round" value="<?php echo esc_attr($comp['current_round']); ?>" min="1">
-                        <input type="number" name="lmc_settings[competitions][<?php echo $index; ?>][max_rounds]" class="max-rounds" placeholder="Max Rounds" value="<?php echo esc_attr($comp['max_rounds']); ?>" min="1">
                         
                         <br>
                         <button type="button" class="button lmc-scrape-btn">Scrape Data</button>
@@ -397,11 +390,9 @@ class LMC_Admin {
                         </label>
                         <br><br>
                         
-                        <input type="text" name="lmc_settings[competitions][INDEX][id]" class="comp-id regular-text" placeholder="Competition ID (e.g., 140768)">
+                        <input type="text" name="lmc_settings[competitions][INDEX][id]" class="comp-id regular-text" placeholder="Competition ID (e.g., 0-1064-0-646414-0)">
                         <input type="text" name="lmc_settings[competitions][INDEX][name]" class="comp-name regular-text" placeholder="Competition Name">
                         <br>
-                        <input type="number" name="lmc_settings[competitions][INDEX][current_round]" class="current-round" placeholder="Current Round" min="1">
-                        <input type="number" name="lmc_settings[competitions][INDEX][max_rounds]" class="max-rounds" placeholder="Max Rounds" min="1">
                         
                         <br>
                         <button type="button" class="button lmc-scrape-btn">Scrape Data</button>
