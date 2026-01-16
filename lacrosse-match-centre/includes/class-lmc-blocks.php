@@ -36,6 +36,31 @@ class LMC_Blocks {
             false
         );
         
+        // Pass competitions list to JavaScript
+        $competitions = LMC_Data::get_all_competitions();
+        $current_competition = get_option('lmc_settings', array());
+        $current_comp_id = isset($current_competition['current_competition']) ? $current_competition['current_competition'] : '';
+        
+        // Format competitions for select dropdown
+        $comp_options = array(
+            array(
+                'label' => '-- Use Current Competition --',
+                'value' => ''
+            )
+        );
+        
+        foreach ($competitions as $comp) {
+            $comp_options[] = array(
+                'label' => $comp['name'],
+                'value' => $comp['id']
+            );
+        }
+        
+        wp_localize_script('lacrosse-match-centre-blocks', 'lmcBlockData', array(
+            'competitions' => $comp_options,
+            'currentCompetition' => $current_comp_id
+        ));
+        
         // Register block editor styles
         wp_register_style(
             'lacrosse-match-centre-blocks-editor',

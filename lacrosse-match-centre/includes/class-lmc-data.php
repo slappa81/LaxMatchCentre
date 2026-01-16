@@ -38,6 +38,39 @@ class LMC_Data {
     }
     
     /**
+     * Get competition name by ID
+     *
+     * @param string $comp_id Competition ID
+     * @return string Competition name or empty string if not found
+     */
+    public static function get_competition_name($comp_id) {
+        if (empty($comp_id)) {
+            return '';
+        }
+        
+        $settings = get_option('lmc_settings', array());
+        $competitions = isset($settings['competitions']) ? $settings['competitions'] : array();
+        
+        foreach ($competitions as $comp) {
+            if ($comp['id'] === $comp_id) {
+                return $comp['name'];
+            }
+        }
+        
+        return '';
+    }
+    
+    /**
+     * Get all configured competitions
+     *
+     * @return array Array of competitions with id and name
+     */
+    public static function get_all_competitions() {
+        $settings = get_option('lmc_settings', array());
+        return isset($settings['competitions']) ? $settings['competitions'] : array();
+    }
+    
+    /**
      * Read JSON file
      *
      * @param string $filename Filename to read
@@ -361,18 +394,6 @@ class LMC_Data {
         }
         
         return $info;
-    }
-    
-    /**
-     * Get all configured competitions
-     *
-     * @return array Array of competitions with 'id' and 'name' keys, or empty array
-     */
-    public static function get_all_competitions() {
-        $settings = get_option('lmc_settings', array());
-        $competitions = isset($settings['competitions']) ? $settings['competitions'] : array();
-        
-        return $competitions;
     }
     
     /**

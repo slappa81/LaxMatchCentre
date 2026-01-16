@@ -27,6 +27,8 @@ class LMC_Admin {
         // AJAX handlers
         add_action('wp_ajax_lmc_scrape_competition', array($this, 'ajax_scrape_competition'));
         add_action('wp_ajax_lmc_clear_cache', array($this, 'ajax_clear_cache'));
+        add_action('wp_ajax_lmc_list_seasons', array($this, 'ajax_list_seasons'));
+        add_action('wp_ajax_lmc_list_available_competitions', array($this, 'ajax_list_available_competitions'));
     }
     
     /**
@@ -189,7 +191,11 @@ class LMC_Admin {
         
         wp_enqueue_script('jquery');
         
-        wp_add_inline_script('jquery', "
+        $scraper_nonce = wp_create_nonce('lmc_scraper_nonce');
+        $cache_nonce = wp_create_nonce('lmc_cache_nonce');
+        $list_competitions_nonce = wp_create_nonce('lmc_list_competitions_nonce');
+        
+        $inline_script = <<<JAVASCRIPT
             jQuery(document).ready(function($) {
                 // Add competition
                 $('#lmc-add-competition').on('click', function() {
@@ -226,7 +232,7 @@ class LMC_Admin {
                         timeout: 300000, // 5 minutes timeout (scraping can take time)
                         data: {
                             action: 'lmc_scrape_competition',
-                            nonce: '" . wp_create_nonce('lmc_scrape_nonce') . "',
+                            nonce: '{$scraper_nonce}',
                             comp_id: compId,
                             comp_name: compName
                         },
@@ -267,7 +273,7 @@ class LMC_Admin {
                         type: 'POST',
                         data: {
                             action: 'lmc_clear_cache',
-                            nonce: '" . wp_create_nonce('lmc_cache_nonce') . "'
+                            nonce: '{$cache_nonce}'
                         },
                         success: function(response) {
                             if (response.success) {
@@ -283,8 +289,203 @@ class LMC_Admin {
                         }
                     });
                 });
+                
+                // Step 1: Discover seasons
+                $('#lmc-discover-seasons-btn').on('click', function() {
+                    var btn = $(this);
+                    var associationId = $('#lmc-discover-association-id').val().trim();
+                    var statusDiv = $('#lmc-discover-status');
+                    var seasonsDiv = $('#lmc-seasons-selection');
+                    var resultsDiv = $('#lmc-discover-results');
+                    
+                    if (!associationId) {
+                        statusDiv.html('<span style=\"color: red;\">⚠️ Please enter an Association ID</span>');
+                        return;
+                    }
+                    
+                    btn.prop('disabled', true).text('Loading Seasons...');
+                    statusDiv.html('<span style=\"color: blue;\">🔍 Fetching seasons from GameDay...</span>');
+                    seasonsDiv.html('');
+                    resultsDiv.html('');
+                    
+                    $.ajax({
+                        url: ajaxurl,
+                        type: 'POST',
+                        timeout: 30000,
+                        data: {
+                            action: 'lmc_list_seasons',
+                            nonce: '{$list_competitions_nonce}',
+                            association_id: associationId
+                        },
+                        success: function(response) {
+                            console.log('Season load success:', response);
+                            btn.prop('disabled', false).text('Load Seasons');
+                            
+                            if (response.success && response.data.seasons) {
+                                var seasons = response.data.seasons;
+                                statusDiv.html('<span style=\"color: green;\">✓ Found ' + seasons.length + ' seasons. Select a season below:</span>');
+                                
+                                var html = '<div style=\"margin: 15px 0;\">';
+                                html += '<select id=\"lmc-season-select\" class=\"regular-text\" style=\"margin-right: 10px;\">';
+                                html += '<option value=\"\">-- Select a Season --</option>';
+                                seasons.forEach(function(season) {
+                                    html += '<option value=\"' + season.id + '\">' + season.name + '</option>';
+                                });
+                                html += '</select>';
+                                html += '<button type=\"button\" id=\"lmc-load-competitions-btn\" class=\"button\">Load Competitions</button>';
+                                html += '</div>';
+                                
+                                seasonsDiv.html(html);
+                            } else {
+                                statusDiv.html('<span style=\"color: red;\">✗ ' + (response.data ? response.data.message : 'No seasons found') + '</span>');
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.log('Season load error:', xhr, status, error);
+                            console.log('Response text:', xhr.responseText);
+                            btn.prop('disabled', false).text('Load Seasons');
+                            statusDiv.html('<span style=\"color: red;\">✗ Request failed</span>');
+                        }
+                    });
+                });
+                
+                // Step 2: Load competitions for selected season
+                $(document).on('click', '#lmc-load-competitions-btn', function() {
+                    var btn = $(this);
+                    var associationId = $('#lmc-discover-association-id').val().trim();
+                    var seasonId = $('#lmc-season-select').val();
+                    var statusDiv = $('#lmc-discover-status');
+                    var resultsDiv = $('#lmc-discover-results');
+                    
+                    if (!seasonId) {
+                        statusDiv.html('<span style=\"color: red;\">⚠️ Please select a season</span>');
+                        return;
+                    }
+                    
+                    btn.prop('disabled', true).text('Loading...');
+                    statusDiv.html('<span style=\"color: blue;\">🔍 Fetching competitions for selected season...</span>');
+                    resultsDiv.html('');
+                    
+                    $.ajax({
+                        url: ajaxurl,
+                        type: 'POST',
+                        timeout: 30000,
+                        data: {
+                            action: 'lmc_list_available_competitions',
+                            nonce: '{$list_competitions_nonce}',
+                            association_id: associationId,
+                            season_id: seasonId
+                        },
+                        success: function(response) {
+                            btn.prop('disabled', false).text('Load Competitions');
+                            
+                            if (response.success && response.data.competitions) {
+                                var comps = response.data.competitions;
+                                statusDiv.html('<span style=\"color: green;\">✓ Found ' + comps.length + ' competitions. Select competitions to scrape:</span>');
+                                
+                                var html = '<div style=\"margin-top: 15px; border: 1px solid #ccc; padding: 15px; background: #f9f9f9;\">';
+                                html += '<div style=\"margin-bottom: 10px;\">';
+                                html += '<button type=\"button\" id=\"lmc-select-all-comps\" class=\"button button-small\" style=\"margin-right: 5px;\">Select All</button>';
+                                html += '<button type=\"button\" id=\"lmc-deselect-all-comps\" class=\"button button-small\" style=\"margin-right: 5px;\">Deselect All</button>';
+                                html += '<button type=\"button\" id=\"lmc-add-selected-comps\" class=\"button button-primary\">Add Selected Competitions</button>';
+                                html += '</div>';
+                                html += '<div style=\"max-height: 400px; overflow-y: auto; background: white; padding: 10px; border: 1px solid #ddd;\">';
+                                
+                                comps.forEach(function(comp) {
+                                    html += '<div style=\"margin: 8px 0; padding: 8px; border-bottom: 1px solid #eee;\">';
+                                    html += '<label style=\"display: flex; align-items: center; cursor: pointer;\">';
+                                    html += '<input type=\"checkbox\" class=\"lmc-comp-checkbox\" data-id=\"' + comp.id + '\" data-name=\"' + comp.name + '\" style=\"margin-right: 10px;\">';
+                                    html += '<span style=\"flex: 1;\"><strong>' + comp.name + '</strong></span>';
+                                    html += '<code style=\"font-size: 11px; color: #666;\">' + comp.id + '</code>';
+                                    html += '</label>';
+                                    html += '</div>';
+                                });
+                                
+                                html += '</div></div>';
+                                resultsDiv.html(html);
+                            } else {
+                                statusDiv.html('<span style=\"color: red;\">✗ ' + (response.data ? response.data.message : 'No competitions found') + '</span>');
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            btn.prop('disabled', false).text('Load Competitions');
+                            statusDiv.html('<span style=\"color: red;\">✗ Request failed</span>');
+                        }
+                    });
+                });
+                
+                // Select/deselect all checkboxes
+                $(document).on('click', '#lmc-select-all-comps', function() {
+                    $('.lmc-comp-checkbox').prop('checked', true);
+                });
+                
+                $(document).on('click', '#lmc-deselect-all-comps', function() {
+                    $('.lmc-comp-checkbox').prop('checked', false);
+                });
+                
+                // Add selected competitions to the configuration
+                $(document).on('click', '#lmc-add-selected-comps', function() {
+                    var checked = $('.lmc-comp-checkbox:checked');
+                    
+                    if (checked.length === 0) {
+                        alert('Please select at least one competition');
+                        return;
+                    }
+                    
+                    checked.each(function() {
+                        var compId = $(this).data('id');
+                        var compName = $(this).data('name');
+                        
+                        // Add a new competition row
+                        var template = $('#competition-template').html();
+                        var index = $('.lmc-competition-row').length;
+                        template = template.replace(/INDEX/g, index);
+                        $('#lmc-competitions-list').append(template);
+                        
+                        // Fill in the values
+                        var newRow = $('.lmc-competition-row').last();
+                        newRow.find('.comp-id').val(compId);
+                        newRow.find('.comp-name').val(compName);
+                    });
+                    
+                    // Clear the discovery results
+                    $('#lmc-discover-results').html('');
+                    $('#lmc-discover-status').html('<span style=\"color: green;\">✓ Added ' + checked.length + ' competitions to configuration</span>');
+                });
+                
+                // Old "Use This" button handler (kept for backwards compatibility if needed)
+                $(document).on('click', '.lmc-use-competition', function() {
+                    var compId = $(this).data('id');
+                    var compName = $(this).data('name');
+                    
+                    // Add a new competition row
+                    var template = $('#competition-template').html();
+                    var index = $('.lmc-competition-row').length;
+                    template = template.replace(/INDEX/g, index);
+                    $('#lmc-competitions-list').append(template);
+                    
+                    // Fill in the values
+                    var newRow = $('.lmc-competition-row').last();
+                    newRow.find('.comp-id').val(compId);
+                    newRow.find('.comp-name').val(compName);
+                    
+                    // Scroll to the new row
+                    $('html, body').animate({
+                        scrollTop: newRow.offset().top - 100
+                    }, 500);
+                    
+                    // Highlight the row briefly
+                    newRow.css('background-color', '#ffffcc');
+                    setTimeout(function() {
+                        newRow.css('background-color', '#fff');
+                    }, 2000);
+                    
+                    alert('Competition added! Remember to save your settings.');
+                });
             });
-        ");
+JAVASCRIPT;
+        
+        wp_add_inline_script('jquery', $inline_script);
         
         wp_add_inline_style('wp-admin', "
             .lmc-competition-row {
@@ -401,6 +602,121 @@ class LMC_Admin {
     }
     
     /**
+     * AJAX handler for listing available seasons from GameDay
+     */
+    public function ajax_list_seasons() {
+        // Suppress error display and start output buffering
+        @ini_set('display_errors', '0');
+        error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED & ~E_STRICT);
+        
+        // Clean any existing output
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        ob_start();
+        
+        error_log('LMC Admin: ajax_list_seasons called');
+        error_log('LMC Admin: POST data: ' . print_r($_POST, true));
+        
+        try {
+            check_ajax_referer('lmc_list_competitions_nonce', 'nonce');
+            
+            if (!current_user_can('manage_options')) {
+                error_log('LMC Admin: Insufficient permissions');
+                ob_end_clean();
+                wp_send_json_error(array('message' => 'Insufficient permissions'));
+            }
+            
+            $association_id = isset($_POST['association_id']) ? sanitize_text_field($_POST['association_id']) : '';
+            
+            if (empty($association_id)) {
+                error_log('LMC Admin: Association ID is empty');
+                ob_end_clean();
+                wp_send_json_error(array('message' => 'Association ID is required'));
+            }
+            
+            error_log('LMC Admin: Fetching seasons for association ' . $association_id);
+            $scraper = new LMC_Scraper();
+            $seasons = $scraper->list_seasons($association_id);
+            
+            if ($seasons === false || empty($seasons)) {
+                error_log('LMC Admin: No seasons found');
+                ob_end_clean();
+                wp_send_json_error(array('message' => 'No seasons found'));
+            }
+            
+            error_log('LMC Admin: Found ' . count($seasons) . ' seasons');
+            ob_end_clean();
+            wp_send_json_success(array('seasons' => $seasons));
+        } catch (Exception $e) {
+            error_log('LMC Admin: Exception while listing seasons: ' . $e->getMessage());
+            ob_end_clean();
+            wp_send_json_error(array('message' => 'Error: ' . $e->getMessage()));
+        }
+    }
+    
+    /**
+     * AJAX handler for listing available competitions from GameDay
+     */
+    public function ajax_list_available_competitions() {
+        // Suppress error display and start output buffering
+        @ini_set('display_errors', '0');
+        error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED & ~E_STRICT);
+        
+        // Clean any existing output
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+        ob_start();
+        
+        check_ajax_referer('lmc_list_competitions_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            ob_end_clean();
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+        }
+        
+        $association_id = isset($_POST['association_id']) ? sanitize_text_field($_POST['association_id']) : '';
+        $season_id = isset($_POST['season_id']) ? sanitize_text_field($_POST['season_id']) : '';
+        
+        if (empty($association_id)) {
+            ob_end_clean();
+            wp_send_json_error(array('message' => 'Association ID is required'));
+        }
+        
+        if (empty($season_id)) {
+            ob_end_clean();
+            wp_send_json_error(array('message' => 'Season ID is required'));
+        }
+        
+        error_log('LMC Admin: Fetching available competitions for association ' . $association_id . ', season ' . $season_id);
+        
+        try {
+            $scraper = new LMC_Scraper();
+            $competitions = $scraper->list_competitions($association_id, $season_id);
+            
+            // Discard any output
+            ob_end_clean();
+            
+            if ($competitions === false || empty($competitions)) {
+                $error_msg = 'No competitions found for this season. ';
+                $error_msg .= 'Please verify: 1) Association ID is correct, 2) Season has active competitions, 3) Check debug.log for details.';
+                
+                wp_send_json_error(array('message' => $error_msg));
+            } else {
+                error_log('LMC Admin: Found ' . count($competitions) . ' competitions');
+                wp_send_json_success(array(
+                    'message' => 'Found ' . count($competitions) . ' competitions',
+                    'competitions' => $competitions
+                ));
+            }
+        } catch (Exception $e) {
+            error_log('LMC Admin: Exception while listing competitions: ' . $e->getMessage());
+            ob_end_clean();
+            wp_send_json_error(array('message' => 'Error: ' . $e->getMessage()));
+        }
+    }    
+    /**
      * Render settings page
      */
     public function render_settings_page() {
@@ -426,6 +742,18 @@ class LMC_Admin {
                 <p><strong>Competition ID Format:</strong> <code>0-&lt;Association&gt;-0-&lt;Competition&gt;-0</code></p>
                 <p><strong>Example:</strong> If your Association is <code>1064</code> and Competition is <code>646414</code>, enter: <code>0-1064-0-646414-0</code></p>
                 <p>Find these in your GameDay website URL. See <a href="https://helpdesk.mygameday.app/help/adding-and-changing-the-match-centre-ids" target="_blank">MyGameDay Help</a> for details.</p>
+                
+                <div style="background: #f0f0f1; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                    <h3 style="margin-top: 0;">🔍 Discover Competitions</h3>
+                    <p>Enter your Association ID and select a season to see all available competitions from GameDay:</p>
+                    <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px;">
+                        <input type="text" id="lmc-discover-association-id" placeholder="e.g., 1064" class="regular-text" style="max-width: 200px;">
+                        <button type="button" id="lmc-discover-seasons-btn" class="button">Load Seasons</button>
+                    </div>
+                    <div id="lmc-seasons-selection" style="margin-bottom: 10px;"></div>
+                    <div id="lmc-discover-status" style="margin-top: 10px;"></div>
+                    <div id="lmc-discover-results" style="margin-top: 15px; max-height: 400px; overflow-y: auto;"></div>
+                </div>
                 
                 <div id="lmc-competitions-list">
                     <?php foreach ($competitions as $index => $comp): ?>

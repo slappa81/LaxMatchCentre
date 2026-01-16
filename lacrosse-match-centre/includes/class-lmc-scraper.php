@@ -531,6 +531,212 @@ class LMC_Scraper {
     }
     
     /**
+     * Get list of all available seasons for an association
+     * 
+     * @param string $association_id Association ID (e.g., "1064" for Lacrosse Victoria)
+     * @return array|false Array of seasons with IDs and names, or false on failure
+     */
+    public function list_seasons($association_id) {
+        $url = "{$this->base_url}/assoc_page.cgi?c=0-{$association_id}-0-0-0&a=COMPS";
+        
+        error_log('LMC Scraper: Fetching seasons from ' . $url);
+        
+        $response = wp_remote_get($url, array(
+            'timeout' => 30,
+            'user-agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        ));
+        
+        if (is_wp_error($response)) {
+            error_log('LMC Scraper: Failed to fetch seasons - ' . $response->get_error_message());
+            return false;
+        }
+        
+        $body = wp_remote_retrieve_body($response);
+        if (empty($body)) {
+            return false;
+        }
+        
+        return $this->parse_seasons($body);
+    }
+    
+    /**
+     * Parse seasons from HTML
+     * 
+     * @param string $html HTML content
+     * @return array Array of seasons
+     */
+    private function parse_seasons($html) {
+        $seasons = array();
+        
+        libxml_use_internal_errors(true);
+        $dom = new DOMDocument();
+        @$dom->loadHTML('<?xml encoding="UTF-8">' . $html);
+        $xpath = new DOMXPath($dom);
+        
+        // Find season selector: <select name="seasonID">
+        $select = $xpath->query("//select[@name='seasonID']");
+        
+        if ($select->length > 0) {
+            $options = $xpath->query(".//option", $select->item(0));
+            
+            foreach ($options as $option) {
+                $value = $option->getAttribute('value');
+                $name = trim($option->textContent);
+                
+                // Extract season ID from URL
+                if (preg_match('/seasonID=(\d+)/', $value, $matches)) {
+                    $seasons[] = array(
+                        'id' => $matches[1],
+                        'name' => $name
+                    );
+                }
+            }
+        }
+        
+        libxml_clear_errors();
+        return $seasons;
+    }
+    
+    /**
+     * Get list of all available competitions for an association/season
+     * 
+     * @param string $association_id Association ID (e.g., "1064" for Lacrosse Victoria)
+     * @param string $season_id Season ID (e.g., "6042193" for 2025 season)
+     * @return array|false Array of competitions with IDs and names, or false on failure
+     */
+    public function list_competitions($association_id, $season_id) {
+        // Use the competitions listing page with season
+        $url = "{$this->base_url}/assoc_page.cgi?c=0-{$association_id}-0-0-0&a=COMPS&seasonID={$season_id}";
+        
+        error_log('LMC Scraper: Fetching competitions from ' . $url);
+        
+        $response = wp_remote_get($url, array(
+            'timeout' => 30,
+            'user-agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        ));
+        
+        if (is_wp_error($response)) {
+            error_log('LMC Scraper: Failed to fetch competitions - ' . $response->get_error_message());
+            return false;
+        }
+        
+        $status_code = wp_remote_retrieve_response_code($response);
+        if ($status_code !== 200) {
+            error_log('LMC Scraper: Competitions request returned status ' . $status_code);
+            return false;
+        }
+        
+        $body = wp_remote_retrieve_body($response);
+        if (empty($body)) {
+            error_log('LMC Scraper: Empty response body for competitions');
+            return false;
+        }
+        
+        error_log('LMC Scraper: Response body length: ' . strlen($body) . ' bytes');
+        
+        $result = $this->parse_competitions($body);
+        
+        if (empty($result)) {
+            error_log('LMC Scraper: No competitions found in HTML');
+            return false;
+        }
+        
+        error_log('LMC Scraper: Successfully parsed ' . count($result) . ' competitions');
+        return $result;
+    }
+    
+    /**
+     * Parse competitions from HTML (competitions listing page)
+     *
+     * @param string $html HTML content
+     * @return array Parsed competitions data
+     */
+    private function parse_competitions($html) {
+        $competitions = array();
+        
+        libxml_use_internal_errors(true);
+        $dom = new DOMDocument();
+        @$dom->loadHTML('<?xml encoding="UTF-8">' . $html);
+        $xpath = new DOMXPath($dom);
+        
+        // Find all competition links: <a href="comp_info.cgi?compID=...">
+        $links = $xpath->query("//a[contains(@href, 'comp_info.cgi')]");
+        
+        error_log('LMC Scraper: Found ' . $links->length . ' competition links');
+        
+        $seen_comp_ids = array(); // Track unique compIDs
+        
+        foreach ($links as $link) {
+            $href = $link->getAttribute('href');
+            
+            // Extract compID from URL: compID=646425
+            if (preg_match('/compID=(\d+)/', $href, $matches)) {
+                $comp_id_number = $matches[1];
+                
+                // Build the full competition ID format: 0-1064-0-COMPID-0
+                if (preg_match('/c=0-(\d+)-/', $href, $assoc_matches)) {
+                    $association_id = $assoc_matches[1];
+                    $comp_id = "0-{$association_id}-0-{$comp_id_number}-0";
+                    
+                    // Skip if we've already seen this compID
+                    if (isset($seen_comp_ids[$comp_id_number])) {
+                        continue;
+                    }
+                    $seen_comp_ids[$comp_id_number] = true;
+                    
+                    // Get the competition name from the parent row
+                    // Navigate up to find the competition name (usually in a heading or title before the links)
+                    $parent = $link->parentNode;
+                    $name = '';
+                    
+                    // Try to find the competition name in previous siblings or parent elements
+                    while ($parent && empty($name)) {
+                        // Look for text nodes or heading elements
+                        $xpath_name = new DOMXPath($dom);
+                        $name_nodes = $xpath_name->query('.//preceding::text()[normalize-space()][1]', $link);
+                        if ($name_nodes->length > 0) {
+                            $name = trim($name_nodes->item(0)->textContent);
+                            break;
+                        }
+                        $parent = $parent->parentNode;
+                    }
+                    
+                    // If we still don't have a name, try to get it from the row structure
+                    if (empty($name) || in_array($name, array('Fixture', 'Results', 'Ladder', 'Stats', 'View'))) {
+                        // Try finding a heading or strong tag in the same table row
+                        $row = $link;
+                        while ($row && $row->nodeName !== 'tr') {
+                            $row = $row->parentNode;
+                        }
+                        
+                        if ($row) {
+                            $headings = $xpath->query('.//strong | .//b | .//h3 | .//h4', $row);
+                            if ($headings->length > 0) {
+                                $name = trim($headings->item(0)->textContent);
+                            }
+                        }
+                    }
+                    
+                    // Skip if we still don't have a proper name
+                    if (empty($name) || in_array($name, array('Fixture', 'Results', 'Ladder', 'Stats', 'View'))) {
+                        error_log("LMC Scraper: Skipping - no valid name found for compID {$comp_id_number}");
+                        continue;
+                    }
+                    
+                    $competitions[] = array(
+                        'id' => $comp_id,
+                        'name' => $name
+                    );
+                    error_log("LMC Scraper: Found competition - ID: {$comp_id}, Name: {$name}");
+                }
+            }
+        }
+        
+        libxml_clear_errors();
+        return $competitions;
+    }
+    
+    /**
      * Scrape all data for a competition
      *
      * @param string $comp_id Competition ID

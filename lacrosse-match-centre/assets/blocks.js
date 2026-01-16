@@ -12,7 +12,7 @@
     
     const { registerBlockType } = wp.blocks;
     const { InspectorControls } = wp.blockEditor || wp.editor || {};
-    const { PanelBody, TextControl, RangeControl, Placeholder } = wp.components;
+    const { PanelBody, TextControl, SelectControl, RangeControl, Placeholder } = wp.components;
     const { __ } = wp.i18n;
     const { createElement: el } = wp.element;
     
@@ -22,6 +22,11 @@
         console.error('InspectorControls not available');
         return;
     }
+    
+    // Get competitions list from localized data
+    const competitions = window.lmcBlockData && window.lmcBlockData.competitions ? window.lmcBlockData.competitions : [
+        { label: '-- Use Current Competition --', value: '' }
+    ];
 
     // Ladder Block
     registerBlockType('lacrosse-match-centre/ladder', {
@@ -55,10 +60,11 @@
                                 setAttributes({ title: value });
                             }
                         }),
-                        el(TextControl, {
-                            label: __('Competition ID (optional)', 'lacrosse-match-centre'),
-                            help: __('Leave empty to use the scraped competition data', 'lacrosse-match-centre'),
+                        el(SelectControl, {
+                            label: __('Competition', 'lacrosse-match-centre'),
+                            help: __('Select a competition or use the current default', 'lacrosse-match-centre'),
                             value: attributes.compId,
+                            options: competitions,
                             onChange: function(value) {
                                 setAttributes({ compId: value });
                             }
@@ -120,10 +126,11 @@
                                 setAttributes({ title: value });
                             }
                         }),
-                        el(TextControl, {
-                            label: __('Competition ID (optional)', 'lacrosse-match-centre'),
-                            help: __('Leave empty to use the scraped competition data', 'lacrosse-match-centre'),
+                        el(SelectControl, {
+                            label: __('Competition', 'lacrosse-match-centre'),
+                            help: __('Select a competition or use the current default', 'lacrosse-match-centre'),
                             value: attributes.compId,
+                            options: competitions,
                             onChange: function(value) {
                                 setAttributes({ compId: value });
                             }
@@ -194,10 +201,11 @@
                                 setAttributes({ title: value });
                             }
                         }),
-                        el(TextControl, {
-                            label: __('Competition ID (optional)', 'lacrosse-match-centre'),
-                            help: __('Leave empty to use the scraped competition data', 'lacrosse-match-centre'),
+                        el(SelectControl, {
+                            label: __('Competition', 'lacrosse-match-centre'),
+                            help: __('Select a competition or use the current default', 'lacrosse-match-centre'),
                             value: attributes.compId,
+                            options: competitions,
                             onChange: function(value) {
                                 setAttributes({ compId: value });
                             }
