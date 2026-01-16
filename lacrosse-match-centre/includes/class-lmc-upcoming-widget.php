@@ -55,9 +55,14 @@ class LMC_Upcoming_Widget extends WP_Widget {
             foreach ($games as $game) {
                 echo '<div class="lmc-game">';
                 echo '<div class="lmc-game-round">Round ' . esc_html($game['round']) . '</div>';
-                echo '<div class="lmc-game-date">' . esc_html($game['date']) . '</div>';
-                if (!empty($game['time'])) {
-                    echo '<div class="lmc-game-time">' . esc_html($game['time']) . '</div>';
+                // Use formatted datetime if available, otherwise fall back to raw date/time
+                if (!empty($game['formatted_datetime'])) {
+                    echo '<div class="lmc-game-datetime">' . esc_html($game['formatted_datetime']) . '</div>';
+                } else {
+                    echo '<div class="lmc-game-date">' . esc_html($game['date']) . '</div>';
+                    if (!empty($game['time'])) {
+                        echo '<div class="lmc-game-time">' . esc_html($game['time']) . '</div>';
+                    }
                 }
                 echo '<div class="lmc-game-teams">';
                 echo '<div class="lmc-team-home">' . esc_html($game['home_team']) . '</div>';

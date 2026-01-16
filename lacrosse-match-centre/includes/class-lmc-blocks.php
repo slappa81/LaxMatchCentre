@@ -223,9 +223,14 @@ class LMC_Blocks {
             foreach ($games as $game) {
                 echo '<div class="lmc-game">';
                 echo '<div class="lmc-game-round">Round ' . esc_html($game['round']) . '</div>';
-                echo '<div class="lmc-game-date">' . esc_html($game['date']) . '</div>';
-                if (!empty($game['time'])) {
-                    echo '<div class="lmc-game-time">' . esc_html($game['time']) . '</div>';
+                // Use formatted datetime if available, otherwise fall back to raw date/time
+                if (!empty($game['formatted_datetime'])) {
+                    echo '<div class="lmc-game-datetime">' . esc_html($game['formatted_datetime']) . '</div>';
+                } else {
+                    echo '<div class="lmc-game-date">' . esc_html($game['date']) . '</div>';
+                    if (!empty($game['time'])) {
+                        echo '<div class="lmc-game-time">' . esc_html($game['time']) . '</div>';
+                    }
                 }
                 echo '<div class="lmc-game-teams">';
                 echo '<div class="lmc-team-home">' . esc_html($game['home_team']) . '</div>';
@@ -273,7 +278,12 @@ class LMC_Blocks {
             foreach ($results as $result) {
                 echo '<div class="lmc-result">';
                 echo '<div class="lmc-result-round">Round ' . esc_html($result['round']) . '</div>';
-                echo '<div class="lmc-result-date">' . esc_html($result['date']) . '</div>';
+                // Use formatted datetime if available, otherwise fall back to raw date
+                if (!empty($result['formatted_datetime'])) {
+                    echo '<div class="lmc-result-datetime">' . esc_html($result['formatted_datetime']) . '</div>';
+                } else {
+                    echo '<div class="lmc-result-date">' . esc_html($result['date']) . '</div>';
+                }
                 echo '<div class="lmc-result-teams">';
                 echo '<div class="lmc-result-team lmc-result-home">';
                 echo '<span class="lmc-result-team-name">' . esc_html($result['home_team']) . '</span>';

@@ -60,6 +60,47 @@ class LMC_Data {
     }
     
     /**
+     * Format date/time with timezone awareness
+     *
+     * @param string $date_string Date string from API
+     * @param string $time_string Time string from API
+     * @param string $format Output format (default: WordPress date format)
+     * @return string Formatted date/time in site timezone
+     */
+    public static function format_datetime($date_string, $time_string = '', $format = '') {
+        if (empty($date_string)) {
+            return '';
+        }
+        
+        if (empty($format)) {
+            $format = get_option('date_format') . ' ' . get_option('time_format');
+        }
+        
+        // Combine date and time
+        $datetime_string = $date_string;
+        if (!empty($time_string)) {
+            $datetime_string .= ' ' . $time_string;
+        }
+        
+        // Try to parse the datetime
+        try {
+            // Assume input is in Australian Eastern Time (Melbourne timezone)
+            $source_timezone = new DateTimeZone('Australia/Melbourne');
+            $datetime = new DateTime($datetime_string, $source_timezone);
+            
+            // Convert to site timezone
+            $site_timezone = new DateTimeZone(wp_timezone_string());
+            $datetime->setTimezone($site_timezone);
+            
+            return $datetime->format($format);
+        } catch (Exception $e) {
+            // If parsing fails, return original string
+            error_log('LMC Data: Failed to parse datetime: ' . $datetime_string . ' - ' . $e->getMessage());
+            return $datetime_string . ($time_string ? ' ' . $time_string : '');
+        }
+    }
+    
+    /**
      * Get ladder data
      *
      * @param string $comp_id Competition ID (optional, uses current if not specified)

@@ -394,31 +394,50 @@ class LMC_Scraper {
      * @param int $max_rounds Maximum rounds in competition
      * @return bool Success status
      */
-    public function fetch_all_fixtures($comp_id, $comp_name, $current_round, $max_rounds = 30) {
-        error_log('LMC Scraper: Auto-detecting rounds by fetching until empty');
+    public function fetch_all_fixtures($comp_id, $comp_name, $current_round, $max_rounds = 18) {
+        error_log('LMC Scraper: Auto-detecting rounds by fetching until empty (max: ' . $max_rounds . ')');
         
         $all_fixtures = array();
         $empty_rounds = 0;
         $last_round_with_data = 0;
+        $seen_fixture_keys = array(); // Track unique fixtures to avoid duplicates
         
-        // Fetch rounds until we hit 3 consecutive empty rounds (to be safe)
+        // Fetch rounds until we hit 2 consecutive empty rounds
         for ($round = 1; $round <= $max_rounds; $round++) {
             $fixtures = $this->get_round_fixtures($comp_id, $round);
             
             if ($fixtures && !empty($fixtures)) {
-                $all_fixtures = array_merge($all_fixtures, $fixtures);
-                $last_round_with_data = $round;
-                $empty_rounds = 0;
-                error_log('LMC Scraper: Round ' . $round . ' returned ' . count($fixtures) . ' fixtures');
+                // Add fixtures and track which ones we've seen
+                $new_fixtures_count = 0;
+                foreach ($fixtures as $fixture) {
+                    // Create a unique key for this fixture
+                    $key = $fixture['round'] . '_' . $fixture['home_team'] . '_' . $fixture['away_team'] . '_' . $fixture['date'];
+                    
+                    // Only add if we haven't seen this exact fixture before
+                    if (!isset($seen_fixture_keys[$key])) {
+                        $all_fixtures[] = $fixture;
+                        $seen_fixture_keys[$key] = true;
+                        $new_fixtures_count++;
+                    }
+                }
+                
+                if ($new_fixtures_count > 0) {
+                    $last_round_with_data = $round;
+                    $empty_rounds = 0;
+                    error_log('LMC Scraper: Round ' . $round . ' returned ' . $new_fixtures_count . ' new fixtures');
+                } else {
+                    $empty_rounds++;
+                    error_log('LMC Scraper: Round ' . $round . ' returned only duplicate fixtures (empty)');
+                }
             } else {
                 $empty_rounds++;
                 error_log('LMC Scraper: Round ' . $round . ' is empty');
-                
-                // If we've found data and now hit 3 empty rounds, we're done
-                if ($last_round_with_data > 0 && $empty_rounds >= 3) {
-                    error_log('LMC Scraper: Stopping at round ' . $round . ', last data in round ' . $last_round_with_data);
-                    break;
-                }
+            }
+            
+            // If we've found data and now hit 2 empty rounds, we're done
+            if ($last_round_with_data > 0 && $empty_rounds >= 2) {
+                error_log('LMC Scraper: Stopping at round ' . $round . ', last data in round ' . $last_round_with_data);
+                break;
             }
             
             // Small delay to avoid overwhelming the server

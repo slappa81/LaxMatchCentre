@@ -185,6 +185,7 @@ class LMC_Admin {
                     $.ajax({
                         url: ajaxurl,
                         type: 'POST',
+                        timeout: 300000, // 5 minutes timeout (scraping can take time)
                         data: {
                             action: 'lmc_scrape_competition',
                             nonce: '" . wp_create_nonce('lmc_scrape_nonce') . "',
@@ -199,8 +200,15 @@ class LMC_Admin {
                             }
                             btn.prop('disabled', false).text('Scrape Data');
                         },
-                        error: function() {
-                            statusDiv.html('<span style=\"color: red;\">✗ Error occurred</span>');
+                        error: function(xhr, status, error) {
+                            console.error('LMC Scraper AJAX Error:', status, error, xhr.responseText);
+                            var errorMsg = 'Error occurred';
+                            if (status === 'timeout') {
+                                errorMsg = 'Request timed out (scraping may still be running - check logs)';
+                            } else if (xhr.responseText) {
+                                errorMsg = 'Error: ' + error;
+                            }
+                            statusDiv.html('<span style=\"color: red;\">✗ ' + errorMsg + '</span>');
                             btn.prop('disabled', false).text('Scrape Data');
                         }
                     });
@@ -272,9 +280,20 @@ class LMC_Admin {
      * AJAX handler for scraping competition
      */
     public function ajax_scrape_competition() {
+        // Suppress error display and start output buffering
+        @ini_set('display_errors', '0');
+        error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED & ~E_STRICT);
+        
+        // Clean any existing output
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+        ob_start();
+        
         check_ajax_referer('lmc_scrape_nonce', 'nonce');
         
         if (!current_user_can('manage_options')) {
+            ob_end_clean();
             wp_send_json_error(array('message' => 'Insufficient permissions'));
         }
         
@@ -282,18 +301,35 @@ class LMC_Admin {
         $comp_name = sanitize_text_field($_POST['comp_name']);
         
         if (empty($comp_id) || empty($comp_name)) {
+            ob_end_clean();
             wp_send_json_error(array('message' => 'Invalid parameters'));
         }
         
-        $scraper = new LMC_Scraper();
-        $result = $scraper->scrape_competition($comp_id, $comp_name);
+        // Increase execution time for scraping (can take 1-2 minutes)
+        set_time_limit(300); // 5 minutes
         
-        if ($result['success']) {
-            // Clear cache for this competition
-            LMC_Data::clear_cache($comp_id);
-            wp_send_json_success($result);
-        } else {
-            wp_send_json_error($result);
+        error_log('LMC Admin: Starting AJAX scrape for ' . $comp_id);
+        
+        try {
+            $scraper = new LMC_Scraper();
+            $result = $scraper->scrape_competition($comp_id, $comp_name);
+            
+            error_log('LMC Admin: Scrape completed, result: ' . json_encode($result));
+            
+            // Discard any output (PHP notices, warnings, etc.)
+            ob_end_clean();
+            
+            if ($result['success']) {
+                // Clear cache for this competition
+                LMC_Data::clear_cache($comp_id);
+                wp_send_json_success($result);
+            } else {
+                wp_send_json_error($result);
+            }
+        } catch (Exception $e) {
+            error_log('LMC Admin: Exception during scrape: ' . $e->getMessage());
+            ob_end_clean();
+            wp_send_json_error(array('message' => 'Error: ' . $e->getMessage()));
         }
     }
     
@@ -301,13 +337,28 @@ class LMC_Admin {
      * AJAX handler for clearing cache
      */
     public function ajax_clear_cache() {
+        // Suppress error display and start output buffering
+        @ini_set('display_errors', '0');
+        error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED & ~E_STRICT);
+        
+        // Clean any existing output
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+        ob_start();
+        
         check_ajax_referer('lmc_cache_nonce', 'nonce');
         
         if (!current_user_can('manage_options')) {
+            ob_end_clean();
             wp_send_json_error(array('message' => 'Insufficient permissions'));
         }
         
         LMC_Data::clear_all_cache();
+        
+        // Discard any output
+        ob_end_clean();
+        
         wp_send_json_success(array('message' => 'Cache cleared'));
     }
     
@@ -367,7 +418,7 @@ class LMC_Admin {
                             <strong>Data Status:</strong><br>
                             <?php foreach ($data_info['files'] as $type => $file_info): ?>
                                 <?php if ($file_info['exists']): ?>
-                                    ✓ <?php echo ucfirst($type); ?>: Last updated <?php echo human_time_diff($file_info['modified'], current_time('timestamp')); ?> ago<br>
+                                    ✓ <?php echo ucfirst($type); ?>: Last updated <?php echo human_time_diff($file_info['modified'], current_time('timestamp', true)); ?> ago<br>
                                 <?php else: ?>
                                     ✗ <?php echo ucfirst($type); ?>: Not available<br>
                                 <?php endif; ?>
