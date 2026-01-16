@@ -74,7 +74,8 @@ class Lacrosse_Match_Centre {
             'includes/class-lmc-blocks.php',
             'includes/class-lmc-ladder-widget.php',
             'includes/class-lmc-upcoming-widget.php',
-            'includes/class-lmc-results-widget.php'
+            'includes/class-lmc-results-widget.php',
+            'includes/class-lmc-cli.php'
         );
         
         foreach ($files as $file) {
@@ -205,4 +206,9 @@ class Lacrosse_Match_Centre {
 // Initialize the plugin
 if (!isset($GLOBALS['lacrosse_match_centre'])) {
     $GLOBALS['lacrosse_match_centre'] = new Lacrosse_Match_Centre();
+}
+
+// Register WP-CLI commands if WP-CLI is available
+if (defined('WP_CLI') && WP_CLI) {
+    WP_CLI::add_command('lmc', 'LMC_CLI');
 }

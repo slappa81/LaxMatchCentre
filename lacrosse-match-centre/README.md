@@ -196,7 +196,22 @@ See [USER-GUIDE.md](USER-GUIDE.md) for setting up WordPress Cron or server cron 
 
 - **[INSTALL.md](INSTALL.md)** - Detailed installation instructions
 - **[USER-GUIDE.md](USER-GUIDE.md)** - Complete user documentation
+- **[API-REFERENCE.md](API-REFERENCE.md)** - API documentation and WP-CLI commands
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history
+
+## 🖥️ WP-CLI Commands
+
+For advanced users and developers, WP-CLI commands are available:
+
+```bash
+# List all configured competitions
+wp lmc list-competitions
+
+# Get details about a specific competition
+wp lmc get-competition <competition-id>
+```
+
+See [API-REFERENCE.md](API-REFERENCE.md) for complete WP-CLI documentation.
 
 ## 🛠️ Technical Details
 

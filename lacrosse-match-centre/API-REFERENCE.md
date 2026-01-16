@@ -129,3 +129,76 @@ define('WP_DEBUG_DISPLAY', false);
 ```
 
 Then check `/wp-content/debug.log` for detailed error information.
+
+## WP-CLI Commands
+
+The plugin provides WP-CLI commands for managing competitions from the command line.
+
+### List All Competitions
+
+List all configured competitions with their IDs and friendly names:
+
+```bash
+wp lmc list-competitions
+```
+
+Example output:
+```
++----------------------+----------------------------------+
+| Competition ID       | Competition Name                 |
++----------------------+----------------------------------+
+| 0-1064-96359-646414-0| Men's Premier League 2024        |
+| 0-1064-96359-646415-0| Women's Premier League 2024      |
++----------------------+----------------------------------+
+Success: Found 2 competition(s).
+```
+
+The current competition (if set) will be marked with "(current)" after the name.
+
+### Get Competition Details
+
+Get detailed information about a specific competition:
+
+```bash
+wp lmc get-competition <competition-id>
+```
+
+Example:
+```bash
+wp lmc get-competition 0-1064-96359-646414-0
+```
+
+Example output:
+```
+Competition Details:
+-------------------
+ID: 0-1064-96359-646414-0
+Name: Men's Premier League 2024
+Is Current: Yes
+Data Available: Yes
+
+Data Files:
+  ✓ Ladder: Last updated 2 hours ago (12 KB)
+  ✓ Fixtures: Last updated 2 hours ago (45 KB)
+  ✓ Upcoming: Last updated 2 hours ago (8 KB)
+  ✓ Results: Last updated 2 hours ago (23 KB)
+Success: Competition details retrieved.
+```
+
+## PHP API
+
+The plugin provides public methods for accessing competition data programmatically.
+
+### Get All Competitions
+
+```php
+$competitions = LMC_Data::get_all_competitions();
+// Returns array of competitions: [['id' => '...', 'name' => '...'], ...]
+```
+
+### Get Current Competition ID
+
+```php
+$current_comp_id = LMC_Data::get_current_competition_id();
+// Returns competition ID string or false if none set
+```

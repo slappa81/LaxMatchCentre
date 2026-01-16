@@ -362,4 +362,25 @@ class LMC_Data {
         
         return $info;
     }
+    
+    /**
+     * Get all configured competitions
+     *
+     * @return array Array of competitions with 'id' and 'name' keys, or empty array
+     */
+    public static function get_all_competitions() {
+        $settings = get_option('lmc_settings', array());
+        $competitions = isset($settings['competitions']) ? $settings['competitions'] : array();
+        
+        return $competitions;
+    }
+    
+    /**
+     * Get current competition ID
+     *
+     * @return string|false Competition ID or false if none set
+     */
+    public static function get_current_competition_id() {
+        return self::get_current_competition();
+    }
 }
