@@ -95,6 +95,13 @@ class LMC_Scraper {
             $cells = $xpath->query(".//td", $row);
             
             if ($cells->length >= 8) {
+                // Try to extract team logo from img tag in first or second cell
+                $logo_url = '';
+                $logo_img = $xpath->query(".//img", $cells->item(1));
+                if ($logo_img->length > 0) {
+                    $logo_url = $logo_img->item(0)->getAttribute('src');
+                }
+                
                 $team_data = array(
                     'position' => (int)trim($cells->item(0)->textContent),
                     'team' => trim($cells->item(1)->textContent),
@@ -105,7 +112,8 @@ class LMC_Scraper {
                     'for' => (int)trim($cells->item(6)->textContent),
                     'against' => (int)trim($cells->item(7)->textContent),
                     'percentage' => ($cells->length > 8) ? trim($cells->item(8)->textContent) : '0%',
-                    'points' => (int)trim($cells->item($cells->length - 1)->textContent)
+                    'points' => (int)trim($cells->item($cells->length - 1)->textContent),
+                    'logo' => $logo_url
                 );
                 
                 $ladder[] = $team_data;
@@ -202,7 +210,9 @@ class LMC_Scraper {
                     'venue' => isset($match['VenueName']) ? html_entity_decode($match['VenueName']) : '',
                     'home_score' => null,
                     'away_score' => null,
-                    'completed' => false
+                    'completed' => false,
+                    'home_logo' => isset($match['HomeTeamLogo']) ? $match['HomeTeamLogo'] : (isset($match['HomeClubLogo']) ? $match['HomeClubLogo'] : ''),
+                    'away_logo' => isset($match['AwayTeamLogo']) ? $match['AwayTeamLogo'] : (isset($match['AwayClubLogo']) ? $match['AwayClubLogo'] : '')
                 );
                 
                 // Check if game is completed (has scores)
@@ -772,26 +782,65 @@ class LMC_Scraper {
         
         // Fetch ladder (use round 1, but ladder shows overall standings)
         $ladder = $this->get_ladder($comp_id, 1);
-        if ($ladder && !empty($ladder)) {
-            $ladder_file = LMC_DATA_DIR . "ladder-{$comp_id}.json";
-            $result = file_put_contents($ladder_file, json_encode($ladder, JSON_PRETTY_PRINT));
-            if ($result === false) {
-                error_log('LMC Scraper: Failed to write ladder file: ' . $ladder_file);
-            } else {
-                error_log('LMC Scraper: Ladder saved successfully');
-                $status['ladder'] = true;
-            }
-        } else {
-            error_log('LMC Scraper: Failed to fetch or parse ladder');
-        }
         
-        // Fetch fixtures (auto-detect number of rounds)
+        // Fetch fixtures first to get logo data (auto-detect number of rounds)
         $fixtures_success = $this->fetch_all_fixtures($comp_id, $comp_name, 1);
         if ($fixtures_success) {
             error_log('LMC Scraper: Fixtures saved successfully');
             $status['fixtures'] = true;
         } else {
             error_log('LMC Scraper: Failed to fetch fixtures');
+        }
+        
+        // If we have both ladder and fixtures, merge logo data from fixtures into ladder
+        if ($ladder && !empty($ladder) && $fixtures_success) {
+            // Load fixtures to get logo data
+            $fixtures_file = LMC_DATA_DIR . "fixtures-{$comp_id}.json";
+            if (file_exists($fixtures_file)) {
+                $fixtures_data = json_decode(file_get_contents($fixtures_file), true);
+                
+                // Build team name to logo mapping from fixtures
+                $team_logos = array();
+                if (is_array($fixtures_data)) {
+                    foreach ($fixtures_data as $fixture) {
+                        if (!empty($fixture['home_team']) && !empty($fixture['home_logo'])) {
+                            $team_logos[$fixture['home_team']] = $fixture['home_logo'];
+                        }
+                        if (!empty($fixture['away_team']) && !empty($fixture['away_logo'])) {
+                            $team_logos[$fixture['away_team']] = $fixture['away_logo'];
+                        }
+                    }
+                }
+                
+                // Merge logos into ladder data
+                foreach ($ladder as &$team) {
+                    if (isset($team_logos[$team['team']])) {
+                        $team['logo'] = $team_logos[$team['team']];
+                        error_log('LMC Scraper: Added logo to ladder for ' . $team['team']);
+                    }
+                }
+                unset($team);
+            }
+        }
+        
+        // Save ladder with logo data
+        if ($ladder && !empty($ladder)) {
+            $ladder_file = LMC_DATA_DIR . "ladder-{$comp_id}.json";
+            $result = file_put_contents($ladder_file, json_encode($ladder, JSON_PRETTY_PRINT));
+            if ($result === false) {
+                error_log('LMC Scraper: Failed to write ladder file: ' . $ladder_file);
+            } else {
+                error_log('LMC Scraper: Ladder saved successfully with logo data');
+                $status['ladder'] = true;
+            }
+        } else {
+            error_log('LMC Scraper: Failed to fetch or parse ladder');
+        }
+        
+        // Download and cache team logos if scraping was successful
+        if ($status['ladder']) {
+            error_log('LMC Scraper: Starting logo download and caching...');
+            $this->download_team_logos($comp_id, $ladder);
         }
         
         // Set overall status
@@ -808,5 +857,152 @@ class LMC_Scraper {
         error_log('LMC Scraper: Scrape completed with status: ' . $status['message']);
         
         return $status;
+    }
+    
+    /**
+     * Download and cache team logos locally
+     *
+     * @param string $comp_id Competition ID
+     * @param array $ladder Ladder data containing team logos
+     * @return void
+     */
+    private function download_team_logos($comp_id, $ladder) {
+        if (!function_exists('wp_upload_dir')) {
+            error_log('LMC Scraper: wp_upload_dir not available');
+            return;
+        }
+        
+        $upload_dir = wp_upload_dir();
+        $lmc_upload_dir = $upload_dir['basedir'] . '/lmc-team-logos';
+        $lmc_upload_url = $upload_dir['baseurl'] . '/lmc-team-logos';
+        
+        // Create directory if it doesn't exist
+        if (!file_exists($lmc_upload_dir)) {
+            wp_mkdir_p($lmc_upload_dir);
+            error_log('LMC Scraper: Created logos directory: ' . $lmc_upload_dir);
+        }
+        
+        $cached_logos = get_option('lmc_cached_logos', array());
+        $updated_count = 0;
+        
+        foreach ($ladder as $team) {
+            if (empty($team['logo']) || empty($team['team'])) {
+                continue;
+            }
+            
+            $team_key = sanitize_title($team['team']);
+            $logo_url = $team['logo'];
+            
+            // Skip if we already have a cached version and it exists
+            if (isset($cached_logos[$team_key]) && file_exists($cached_logos[$team_key]['file'])) {
+                continue;
+            }
+            
+            // Download the image
+            $downloaded = $this->download_image($logo_url, $lmc_upload_dir, $team_key);
+            
+            if ($downloaded) {
+                $cached_logos[$team_key] = array(
+                    'team_name' => $team['team'],
+                    'original_url' => $logo_url,
+                    'file' => $downloaded['file'],
+                    'url' => $lmc_upload_url . '/' . basename($downloaded['file']),
+                    'downloaded_at' => current_time('mysql')
+                );
+                $updated_count++;
+                error_log('LMC Scraper: Cached logo for ' . $team['team']);
+            }
+        }
+        
+        // Save the cached logos option
+        update_option('lmc_cached_logos', $cached_logos);
+        
+        error_log('LMC Scraper: Logo caching complete. Downloaded ' . $updated_count . ' new logos.');
+    }
+    
+    /**
+     * Download an image from a URL and save it locally
+     *
+     * @param string $url Image URL
+     * @param string $target_dir Target directory
+     * @param string $filename_prefix Prefix for the filename
+     * @return array|false Array with file path and name, or false on failure
+     */
+    private function download_image($url, $target_dir, $filename_prefix) {
+        if (empty($url)) {
+            return false;
+        }
+        
+        // Handle relative URLs
+        if (strpos($url, '//') === 0) {
+            $url = 'https:' . $url;
+        } elseif (strpos($url, '/') === 0) {
+            $url = 'https://websites.mygameday.app' . $url;
+        }
+        
+        // Get the image
+        $response = wp_remote_get($url, array(
+            'timeout' => 30,
+            'user-agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        ));
+        
+        if (is_wp_error($response)) {
+            error_log('LMC Scraper: Failed to download image: ' . $response->get_error_message());
+            return false;
+        }
+        
+        $status_code = wp_remote_retrieve_response_code($response);
+        if ($status_code !== 200) {
+            error_log('LMC Scraper: Image download returned status ' . $status_code);
+            return false;
+        }
+        
+        $image_data = wp_remote_retrieve_body($response);
+        if (empty($image_data)) {
+            error_log('LMC Scraper: Empty image data received');
+            return false;
+        }
+        
+        // Determine file extension from content type or URL
+        $content_type = wp_remote_retrieve_header($response, 'content-type');
+        $extension = 'png'; // default
+        
+        if (strpos($content_type, 'jpeg') !== false || strpos($content_type, 'jpg') !== false) {
+            $extension = 'jpg';
+        } elseif (strpos($content_type, 'png') !== false) {
+            $extension = 'png';
+        } elseif (strpos($content_type, 'gif') !== false) {
+            $extension = 'gif';
+        } elseif (strpos($content_type, 'webp') !== false) {
+            $extension = 'webp';
+        } elseif (strpos($content_type, 'svg') !== false) {
+            $extension = 'svg';
+        } else {
+            // Try to get extension from URL
+            $path = parse_url($url, PHP_URL_PATH);
+            if ($path) {
+                $url_ext = pathinfo($path, PATHINFO_EXTENSION);
+                if (in_array(strtolower($url_ext), array('jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'))) {
+                    $extension = strtolower($url_ext);
+                }
+            }
+        }
+        
+        // Generate filename
+        $filename = $filename_prefix . '-' . md5($url) . '.' . $extension;
+        $filepath = $target_dir . '/' . $filename;
+        
+        // Save the file
+        $result = file_put_contents($filepath, $image_data);
+        
+        if ($result === false) {
+            error_log('LMC Scraper: Failed to save image to ' . $filepath);
+            return false;
+        }
+        
+        return array(
+            'file' => $filepath,
+            'filename' => $filename
+        );
     }
 }

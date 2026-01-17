@@ -209,3 +209,58 @@
         text-align: center;
     }
 }
+
+/* Team Logo Display Styles */
+.lmc-team-display {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.lmc-team-logo {
+    max-width: 32px;
+    max-height: 32px;
+    width: auto;
+    height: auto;
+    vertical-align: middle;
+}
+
+.lmc-display-image .lmc-team-name {
+    display: none;
+}
+
+.lmc-display-text .lmc-team-logo {
+    display: none;
+}
+
+.lmc-ladder-table .lmc-team-logo {
+    max-width: 24px;
+    max-height: 24px;
+}
+
+.lmc-result-teams .lmc-team-logo,
+.lmc-game-teams .lmc-team-logo {
+    max-width: 28px;
+    max-height: 28px;
+}
+
+.lmc-team-display.lmc-no-logo .lmc-team-name {
+    display: inline;
+}
+
+/* Venue Map Link */
+.lmc-game-venue a,
+.lmc-result-venue a {
+    color: #1e3a8a;
+    text-decoration: none;
+}
+
+.lmc-game-venue a:hover,
+.lmc-result-venue a:hover {
+    text-decoration: underline;
+}
+
+.lmc-map-icon {
+    display: inline-block;
+    margin-right: 4px;
+}

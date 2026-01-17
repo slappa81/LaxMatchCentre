@@ -30,6 +30,9 @@ class LMC_Admin {
         add_action('wp_ajax_lmc_list_seasons', array($this, 'ajax_list_seasons'));
         add_action('wp_ajax_lmc_list_available_competitions', array($this, 'ajax_list_available_competitions'));
         add_action('wp_ajax_lmc_get_teams', array($this, 'ajax_get_teams'));
+        add_action('wp_ajax_lmc_upload_team_logo', array($this, 'ajax_upload_team_logo'));
+        add_action('wp_ajax_lmc_delete_team_logo', array($this, 'ajax_delete_team_logo'));
+        add_action('wp_ajax_lmc_clear_cached_logos', array($this, 'ajax_clear_cached_logos'));
     }
     
     /**
@@ -110,6 +113,14 @@ class LMC_Admin {
             'lmc_competitions_section',
             'Competitions',
             array($this, 'render_competitions_section'),
+            'lacrosse-match-centre'
+        );
+        
+        // Team Images Section
+        add_settings_section(
+            'lmc_team_images_section',
+            'Team Images',
+            array($this, 'render_team_images_section'),
             'lacrosse-match-centre'
         );
     }
@@ -206,6 +217,7 @@ class LMC_Admin {
         $cache_nonce = wp_create_nonce('lmc_cache_nonce');
         $list_competitions_nonce = wp_create_nonce('lmc_list_competitions_nonce');
         $get_teams_nonce = wp_create_nonce('lmc_get_teams_nonce');
+        $admin_nonce = wp_create_nonce('lmc-admin-nonce');
         
         $inline_script = <<<JAVASCRIPT
             jQuery(document).ready(function($) {
@@ -218,8 +230,19 @@ class LMC_Admin {
                 $(document).on('click', '.lmc-scrape-btn', function() {
                     var btn = $(this);
                     var row = btn.closest('.lmc-competition-row');
+                    
+                    // Try to get from visible inputs first (new competitions)
                     var compId = row.find('.comp-id').val();
                     var compName = row.find('.comp-name').val();
+                    
+                    // If not found, try hidden inputs (saved competitions)
+                    if (!compId) {
+                        compId = row.find('input[name*="[id]"]').val();
+                    }
+                    if (!compName) {
+                        compName = row.find('input[name*="[name]"]').val();
+                    }
+                    
                     var statusDiv = row.find('.scrape-status');
                     
                     if (!compId || !compName) {
@@ -241,10 +264,18 @@ class LMC_Admin {
                             comp_name: compName
                         },
                         success: function(response) {
+                            console.log('LMC Scraper Response:', response);
                             if (response.success) {
                                 statusDiv.html('<span style=\"color: green;\">✓ ' + response.data.message + '</span>');
                             } else {
-                                statusDiv.html('<span style=\"color: red;\">✗ ' + response.data.message + '</span>');
+                                var errorMsg = 'Scraping failed';
+                                if (response.data && response.data.message) {
+                                    errorMsg = response.data.message;
+                                } else if (response.message) {
+                                    errorMsg = response.message;
+                                }
+                                console.error('LMC Scraper Error:', errorMsg, response);
+                                statusDiv.html('<span style=\"color: red;\">✗ ' + errorMsg + '</span>');
                             }
                             btn.prop('disabled', false).text('Scrape Data');
                         },
@@ -254,7 +285,14 @@ class LMC_Admin {
                             if (status === 'timeout') {
                                 errorMsg = 'Request timed out (scraping may still be running - check logs)';
                             } else if (xhr.responseText) {
-                                errorMsg = 'Error: ' + error;
+                                try {
+                                    var response = JSON.parse(xhr.responseText);
+                                    if (response.data && response.data.message) {
+                                        errorMsg = response.data.message;
+                                    }
+                                } catch(e) {
+                                    errorMsg = 'Error: ' + error;
+                                }
                             }
                             statusDiv.html('<span style=\"color: red;\">✗ ' + errorMsg + '</span>');
                             btn.prop('disabled', false).text('Scrape Data');
@@ -536,9 +574,126 @@ class LMC_Admin {
                         }
                     });
                 });
+                
+                // Team logo upload
+                $(document).on('click', '.lmc-upload-logo-btn', function() {
+                    var btn = $(this);
+                    var teamKey = btn.data('team');
+                    var teamName = btn.data('team-name');
+                    var tr = btn.closest('tr');
+                    
+                    // Use WordPress media uploader
+                    var frame = wp.media({
+                        title: 'Select Team Logo for ' + teamName,
+                        button: {
+                            text: 'Use this image'
+                        },
+                        multiple: false,
+                        library: {
+                            type: 'image'
+                        }
+                    });
+                    
+                    frame.on('select', function() {
+                        var attachment = frame.state().get('selection').first().toJSON();
+                        var imageUrl = attachment.url;
+                        
+                        // Update via AJAX
+                        $.ajax({
+                            url: ajaxurl,
+                            type: 'POST',
+                            data: {
+                                action: 'lmc_upload_team_logo',
+                                nonce: '{$admin_nonce}',
+                                team: teamKey,
+                                image_url: imageUrl
+                            },
+                            success: function(response) {
+                                if (response.success) {
+                                    location.reload();
+                                } else {
+                                    alert('Error: ' + (response.data || 'Unknown error'));
+                                }
+                            },
+                            error: function() {
+                                alert('Error uploading logo');
+                            }
+                        });
+                    });
+                    
+                    frame.open();
+                });
+                
+                // Delete custom team logo
+                $(document).on('click', '.lmc-delete-logo-btn', function() {
+                    var btn = $(this);
+                    var teamKey = btn.data('team');
+                    
+                    if (!confirm('Remove custom logo and use the scraped one?')) {
+                        return;
+                    }
+                    
+                    $.ajax({
+                        url: ajaxurl,
+                        type: 'POST',
+                        data: {
+                            action: 'lmc_delete_team_logo',
+                            nonce: '{$admin_nonce}',
+                            team: teamKey
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                location.reload();
+                            } else {
+                                alert('Error: ' + (response.data || 'Unknown error'));
+                            }
+                        },
+                        error: function() {
+                            alert('Error deleting logo');
+                        }
+                    });
+                });
+                
+                // Clear all cached logos
+                $('#lmc-clear-cached-logos').on('click', function() {
+                    var btn = $(this);
+                    var statusSpan = $('#lmc-clear-logos-status');
+                    
+                    if (!confirm('This will delete all locally cached team logos. They will be re-downloaded on the next scrape. Continue?')) {
+                        return;
+                    }
+                    
+                    btn.prop('disabled', true).text('Clearing...');
+                    statusSpan.html('<span style="color: blue;">⏳ Clearing cached logos...</span>');
+                    
+                    $.ajax({
+                        url: ajaxurl,
+                        type: 'POST',
+                        data: {
+                            action: 'lmc_clear_cached_logos',
+                            nonce: '{$admin_nonce}'
+                        },
+                        success: function(response) {
+                            btn.prop('disabled', false).text('Clear All Cached Logos');
+                            if (response.success) {
+                                statusSpan.html('<span style="color: green;">✓ Cached logos cleared successfully</span>');
+                                setTimeout(function() {
+                                    location.reload();
+                                }, 1500);
+                            } else {
+                                statusSpan.html('<span style="color: red;">✗ Error: ' + (response.data || 'Unknown error') + '</span>');
+                            }
+                        },
+                        error: function() {
+                            btn.prop('disabled', false).text('Clear All Cached Logos');
+                            statusSpan.html('<span style="color: red;">✗ Request failed</span>');
+                        }
+                    });
+                });
             });
 JAVASCRIPT;
         
+        wp_enqueue_media();
         wp_add_inline_script('jquery', $inline_script);
         
         wp_add_inline_style('wp-admin', "
@@ -583,7 +738,7 @@ JAVASCRIPT;
         }
         ob_start();
         
-        check_ajax_referer('lmc_scrape_nonce', 'nonce');
+        check_ajax_referer('lmc_scraper_nonce', 'nonce');
         
         if (!current_user_can('manage_options')) {
             ob_end_clean();
@@ -612,15 +767,22 @@ JAVASCRIPT;
             // Discard any output (PHP notices, warnings, etc.)
             ob_end_clean();
             
+            // Ensure we always have a message
+            if (!isset($result['message']) || empty($result['message'])) {
+                $result['message'] = 'Scraping completed but no status message was provided';
+            }
+            
             if ($result['success']) {
                 // Clear cache for this competition
                 LMC_Data::clear_cache($comp_id);
                 wp_send_json_success($result);
             } else {
+                error_log('LMC Admin: Scrape failed with message: ' . $result['message']);
                 wp_send_json_error($result);
             }
         } catch (Exception $e) {
             error_log('LMC Admin: Exception during scrape: ' . $e->getMessage());
+            error_log('LMC Admin: Exception trace: ' . $e->getTraceAsString());
             ob_end_clean();
             wp_send_json_error(array('message' => 'Error: ' . $e->getMessage()));
         }
@@ -990,5 +1152,234 @@ JAVASCRIPT;
             </form>
         </div>
         <?php
+    }
+    
+    /**
+     * Render team images section
+     */
+    public function render_team_images_section() {
+        $settings = get_option('lmc_settings', array());
+        $current_competition = isset($settings['current_competition']) ? $settings['current_competition'] : '';
+        
+        if (empty($current_competition)) {
+            echo '<p>Please select a current competition first.</p>';
+            return;
+        }
+        
+        // Get all teams from ladder data
+        $teams = LMC_Data::get_all_teams($current_competition);
+        $team_logos = get_option('lmc_team_logos', array());
+        $cached_logos = get_option('lmc_cached_logos', array());
+        
+        ?>
+        <div id="lmc-team-images-container">
+            <p>Manage team logos for the current competition. Logos are automatically scraped and cached locally. You can also upload custom replacements.</p>
+            
+            <div style="margin-bottom: 15px;">
+                <button type="button" id="lmc-clear-cached-logos" class="button">Clear All Cached Logos</button>
+                <span id="lmc-clear-logos-status" style="margin-left: 10px;"></span>
+                <p class="description">This will delete all locally cached logo files. Logos will be re-downloaded on next scrape.</p>
+            </div>
+            
+            <?php if (empty($teams)): ?>
+                <p><em>No teams found. Please scrape data for the current competition first.</em></p>
+            <?php else: ?>
+                <table class="wp-list-table widefat fixed striped">
+                    <thead>
+                        <tr>
+                            <th style="width: 35%;">Team Name</th>
+                            <th style="width: 30%;">Current Logo</th>
+                            <th style="width: 15%;">Source</th>
+                            <th style="width: 20%;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($teams as $team): ?>
+                            <?php
+                            $team_name = sanitize_text_field($team['team']);
+                            $team_key = sanitize_title($team_name);
+                            
+                            // Determine which logo to display and its source
+                            $logo_url = '';
+                            $logo_source = 'None';
+                            
+                            if (isset($team_logos[$team_key]) && !empty($team_logos[$team_key])) {
+                                $logo_url = $team_logos[$team_key];
+                                $logo_source = 'Custom Upload';
+                            } elseif (isset($cached_logos[$team_key]) && !empty($cached_logos[$team_key]['url'])) {
+                                $logo_url = $cached_logos[$team_key]['url'];
+                                $logo_source = 'Cached from SportsTG';
+                            } elseif (isset($team['logo']) && !empty($team['logo'])) {
+                                $logo_url = $team['logo'];
+                                $logo_source = 'SportsTG (Direct)';
+                            }
+                            
+                            // Convert protocol-relative URLs to HTTPS
+                            if (!empty($logo_url) && strpos($logo_url, '//') === 0) {
+                                $logo_url = 'https:' . $logo_url;
+                            }
+                            ?>
+                            <tr data-team="<?php echo esc_attr($team_key); ?>">
+                                <td><strong><?php echo esc_html($team_name); ?></strong></td>
+                                <td>
+                                    <div class="lmc-logo-preview">
+                                        <?php if (!empty($logo_url)): ?>
+                                            <img src="<?php echo esc_url($logo_url); ?>" alt="<?php echo esc_attr($team_name); ?>" style="max-width: 80px; max-height: 80px;">
+                                        <?php else: ?>
+                                            <em>No logo available</em>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="lmc-logo-source"><?php echo esc_html($logo_source); ?></span>
+                                </td>
+                                <td>
+                                    <button type="button" class="button lmc-upload-logo-btn" data-team="<?php echo esc_attr($team_key); ?>" data-team-name="<?php echo esc_attr($team_name); ?>">
+                                        <?php echo isset($team_logos[$team_key]) ? 'Replace Logo' : 'Upload Custom'; ?>
+                                    </button>
+                                    <?php if (isset($team_logos[$team_key])): ?>
+                                        <br><button type="button" class="button lmc-delete-logo-btn" data-team="<?php echo esc_attr($team_key); ?>" style="margin-top: 5px;">Remove Custom</button>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
+        </div>
+        <?php
+    }
+    
+    /**
+     * AJAX handler for uploading team logo
+     */
+    public function ajax_upload_team_logo() {
+        check_ajax_referer('lmc-admin-nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+        
+        $team_key = isset($_POST['team']) ? sanitize_text_field($_POST['team']) : '';
+        $image_url = isset($_POST['image_url']) ? esc_url_raw($_POST['image_url']) : '';
+        
+        if (empty($team_key)) {
+            wp_send_json_error('Team key is required');
+            return;
+        }
+        
+        if (empty($image_url)) {
+            wp_send_json_error('Image URL is required');
+            return;
+        }
+        
+        // Get existing logos
+        $team_logos = get_option('lmc_team_logos', array());
+        
+        // Update the logo for this team
+        $team_logos[$team_key] = $image_url;
+        
+        // Save
+        update_option('lmc_team_logos', $team_logos);
+        
+        // Clear cache to force data refresh
+        LMC_Data::clear_all_cache();
+        
+        wp_send_json_success(array(
+            'message' => 'Team logo updated successfully',
+            'logo_url' => $image_url
+        ));
+    }
+    
+    /**
+     * AJAX handler for deleting custom team logo
+     */
+    public function ajax_delete_team_logo() {
+        check_ajax_referer('lmc-admin-nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+        
+        $team_key = isset($_POST['team']) ? sanitize_text_field($_POST['team']) : '';
+        
+        if (empty($team_key)) {
+            wp_send_json_error('Team key is required');
+            return;
+        }
+        
+        // Get existing logos
+        $team_logos = get_option('lmc_team_logos', array());
+        
+        // Remove the custom logo
+        unset($team_logos[$team_key]);
+        
+        // Save
+        update_option('lmc_team_logos', $team_logos);
+        
+        // Clear cache
+        LMC_Data::clear_all_cache();
+        
+        wp_send_json_success(array(
+            'message' => 'Custom logo removed successfully'
+        ));
+    }
+    
+    /**
+     * AJAX handler for clearing all cached logos
+     */
+    public function ajax_clear_cached_logos() {
+        check_ajax_referer('lmc-admin-nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+        
+        // Get cached logos
+        $cached_logos = get_option('lmc_cached_logos', array());
+        $deleted_count = 0;
+        $error_count = 0;
+        
+        // Delete all cached logo files
+        foreach ($cached_logos as $team_key => $logo_data) {
+            if (isset($logo_data['file']) && file_exists($logo_data['file'])) {
+                if (unlink($logo_data['file'])) {
+                    $deleted_count++;
+                } else {
+                    $error_count++;
+                    error_log('LMC Admin: Failed to delete cached logo file: ' . $logo_data['file']);
+                }
+            }
+        }
+        
+        // Clear the cached logos option
+        delete_option('lmc_cached_logos');
+        
+        // Also try to remove the directory if empty
+        $upload_dir = wp_upload_dir();
+        $lmc_upload_dir = $upload_dir['basedir'] . '/lmc-team-logos';
+        if (is_dir($lmc_upload_dir)) {
+            $files = glob($lmc_upload_dir . '/*');
+            if (empty($files)) {
+                @rmdir($lmc_upload_dir);
+            }
+        }
+        
+        // Clear data cache
+        LMC_Data::clear_all_cache();
+        
+        $message = "Cleared {$deleted_count} cached logo(s)";
+        if ($error_count > 0) {
+            $message .= " ({$error_count} file(s) could not be deleted)";
+        }
+        
+        wp_send_json_success(array(
+            'message' => $message,
+            'deleted' => $deleted_count,
+            'errors' => $error_count
+        ));
     }
 }

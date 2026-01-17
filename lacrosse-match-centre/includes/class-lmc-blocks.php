@@ -106,6 +106,10 @@ class LMC_Blocks {
                 'compId' => array(
                     'type' => 'string',
                     'default' => ''
+                ),
+                'displayMode' => array(
+                    'type' => 'string',
+                    'default' => 'text'
                 )
             ),
             'render_callback' => array($this, 'render_ladder_block')
@@ -131,6 +135,10 @@ class LMC_Blocks {
                 'limit' => array(
                     'type' => 'number',
                     'default' => 5
+                ),
+                'displayMode' => array(
+                    'type' => 'string',
+                    'default' => 'text'
                 )
             ),
             'render_callback' => array($this, 'render_upcoming_block')
@@ -156,6 +164,10 @@ class LMC_Blocks {
                 'limit' => array(
                     'type' => 'number',
                     'default' => 5
+                ),
+                'displayMode' => array(
+                    'type' => 'string',
+                    'default' => 'text'
                 )
             ),
             'render_callback' => array($this, 'render_results_block')
@@ -185,6 +197,11 @@ class LMC_Blocks {
                 'limit' => array(
                     'type' => 'number',
                     'default' => 5
+                ),
+                'displayMode' => array(
+                    'type' => 'string',
+                    'default' => 'text',
+                    'enum' => array('text', 'image', 'both')
                 )
             ),
             'render_callback' => array($this, 'render_team_results_block')
@@ -214,6 +231,11 @@ class LMC_Blocks {
                 'limit' => array(
                     'type' => 'number',
                     'default' => 5
+                ),
+                'displayMode' => array(
+                    'type' => 'string',
+                    'default' => 'text',
+                    'enum' => array('text', 'image', 'both')
                 )
             ),
             'render_callback' => array($this, 'render_team_upcoming_block')
@@ -229,6 +251,7 @@ class LMC_Blocks {
     public function render_ladder_block($attributes) {
         $title = isset($attributes['title']) ? $attributes['title'] : 'Competition Ladder';
         $comp_id = isset($attributes['compId']) && !empty($attributes['compId']) ? $attributes['compId'] : null;
+        $display_mode = isset($attributes['displayMode']) ? $attributes['displayMode'] : 'text';
         
         error_log('LMC Blocks: Rendering ladder block with compId: ' . ($comp_id ? $comp_id : 'NULL (will use current)'));
         error_log('LMC Blocks: Block attributes: ' . print_r($attributes, true));
@@ -246,6 +269,14 @@ class LMC_Blocks {
         error_log('LMC Blocks: Ladder data result: ' . ($ladder ? count($ladder) . ' teams' : 'FALSE/NULL'));
         
         if ($ladder && !empty($ladder)) {
+            // Build logos array for helper function
+            $logos_data = array();
+            foreach ($ladder as $team) {
+                if (isset($team['logo']) && !empty($team['logo'])) {
+                    $logos_data[$team['team']] = $team['logo'];
+                }
+            }
+            
             echo '<div class="lmc-ladder">';
             echo '<table class="lmc-ladder-table">';
             echo '<thead>';
@@ -264,7 +295,7 @@ class LMC_Blocks {
             foreach ($ladder as $team) {
                 echo '<tr>';
                 echo '<td class="pos">' . esc_html($team['position']) . '</td>';
-                echo '<td class="team">' . esc_html($team['team']) . '</td>';
+                echo '<td class="team">' . $this->render_team_display($team['team'], $display_mode, $logos_data) . '</td>';
                 echo '<td class="played">' . esc_html($team['played']) . '</td>';
                 echo '<td class="won">' . esc_html($team['won']) . '</td>';
                 echo '<td class="lost">' . esc_html($team['lost']) . '</td>';
@@ -292,6 +323,7 @@ class LMC_Blocks {
         $title = isset($attributes['title']) ? $attributes['title'] : 'Upcoming Games';
         $comp_id = isset($attributes['compId']) && !empty($attributes['compId']) ? $attributes['compId'] : null;
         $limit = isset($attributes['limit']) ? absint($attributes['limit']) : 5;
+        $display_mode = isset($attributes['displayMode']) ? $attributes['displayMode'] : 'text';
         
         error_log('LMC Blocks: Rendering upcoming block with compId: ' . ($comp_id ? $comp_id : 'NULL (will use current)'));
         
@@ -308,6 +340,17 @@ class LMC_Blocks {
         error_log('LMC Blocks: Upcoming games result: ' . ($games ? count($games) . ' games' : 'FALSE/NULL'));
         
         if ($games && !empty($games)) {
+            // Build logos array
+            $logos_data = array();
+            foreach ($games as $game) {
+                if (isset($game['home_logo']) && !empty($game['home_logo'])) {
+                    $logos_data[$game['home_team']] = $game['home_logo'];
+                }
+                if (isset($game['away_logo']) && !empty($game['away_logo'])) {
+                    $logos_data[$game['away_team']] = $game['away_logo'];
+                }
+            }
+            
             echo '<div class="lmc-upcoming">';
             
             foreach ($games as $game) {
@@ -323,12 +366,12 @@ class LMC_Blocks {
                     }
                 }
                 echo '<div class="lmc-game-teams">';
-                echo '<div class="lmc-team-home">' . esc_html($game['home_team']) . '</div>';
+                echo '<div class="lmc-team-home">' . $this->render_team_display($game['home_team'], $display_mode, $logos_data) . '</div>';
                 echo '<div class="lmc-vs">vs</div>';
-                echo '<div class="lmc-team-away">' . esc_html($game['away_team']) . '</div>';
+                echo '<div class="lmc-team-away">' . $this->render_team_display($game['away_team'], $display_mode, $logos_data) . '</div>';
                 echo '</div>';
                 if (!empty($game['venue'])) {
-                    echo '<div class="lmc-game-venue">' . esc_html($game['venue']) . '</div>';
+                    echo '<div class="lmc-game-venue">' . $this->render_venue_with_map($game['venue']) . '</div>';
                 }
                 echo '</div>';
             }
@@ -350,6 +393,7 @@ class LMC_Blocks {
         $title = isset($attributes['title']) ? $attributes['title'] : 'Recent Results';
         $comp_id = isset($attributes['compId']) && !empty($attributes['compId']) ? $attributes['compId'] : null;
         $limit = isset($attributes['limit']) ? absint($attributes['limit']) : 5;
+        $display_mode = isset($attributes['displayMode']) ? $attributes['displayMode'] : 'text';
         
         error_log('LMC Blocks: Rendering results block with compId: ' . ($comp_id ? $comp_id : 'NULL (will use current)'));
         
@@ -366,6 +410,17 @@ class LMC_Blocks {
         error_log('LMC Blocks: Results data result: ' . ($results ? count($results) . ' results' : 'FALSE/NULL'));
         
         if ($results && !empty($results)) {
+            // Build logos array
+            $logos_data = array();
+            foreach ($results as $result) {
+                if (isset($result['home_logo']) && !empty($result['home_logo'])) {
+                    $logos_data[$result['home_team']] = $result['home_logo'];
+                }
+                if (isset($result['away_logo']) && !empty($result['away_logo'])) {
+                    $logos_data[$result['away_team']] = $result['away_logo'];
+                }
+            }
+            
             echo '<div class="lmc-results">';
             
             foreach ($results as $result) {
@@ -379,16 +434,16 @@ class LMC_Blocks {
                 }
                 echo '<div class="lmc-result-teams">';
                 echo '<div class="lmc-result-team lmc-result-home">';
-                echo '<span class="lmc-result-team-name">' . esc_html($result['home_team']) . '</span>';
+                echo '<span class="lmc-result-team-name">' . $this->render_team_display($result['home_team'], $display_mode, $logos_data) . '</span>';
                 echo '<span class="lmc-result-score">' . esc_html($result['home_score']) . '</span>';
                 echo '</div>';
                 echo '<div class="lmc-result-team lmc-result-away">';
-                echo '<span class="lmc-result-team-name">' . esc_html($result['away_team']) . '</span>';
+                echo '<span class="lmc-result-team-name">' . $this->render_team_display($result['away_team'], $display_mode, $logos_data) . '</span>';
                 echo '<span class="lmc-result-score">' . esc_html($result['away_score']) . '</span>';
                 echo '</div>';
                 echo '</div>';
                 if (!empty($result['venue'])) {
-                    echo '<div class="lmc-result-venue">' . esc_html($result['venue']) . '</div>';
+                    echo '<div class="lmc-result-venue">' . $this->render_venue_with_map($result['venue']) . '</div>';
                 }
                 echo '</div>';
             }
@@ -411,6 +466,7 @@ class LMC_Blocks {
         $comp_id = isset($attributes['compId']) && !empty($attributes['compId']) ? $attributes['compId'] : null;
         $team_name = isset($attributes['teamName']) && !empty($attributes['teamName']) ? $attributes['teamName'] : null;
         $limit = isset($attributes['limit']) ? absint($attributes['limit']) : 5;
+        $display_mode = isset($attributes['displayMode']) ? $attributes['displayMode'] : 'text';
         
         error_log('LMC Blocks: Rendering team results block with compId: ' . ($comp_id ? $comp_id : 'NULL') . ', team: ' . ($team_name ? $team_name : 'NULL'));
         
@@ -430,6 +486,17 @@ class LMC_Blocks {
             // Get the actual team name being displayed (in case it was auto-selected)
             if (!$team_name) {
                 $team_name = LMC_Data::get_primary_team($comp_id);
+            }
+            
+            // Build logos array
+            $logos_data = array();
+            foreach ($results as $result) {
+                if (isset($result['home_logo']) && !empty($result['home_logo'])) {
+                    $logos_data[$result['home_team']] = $result['home_logo'];
+                }
+                if (isset($result['away_logo']) && !empty($result['away_logo'])) {
+                    $logos_data[$result['away_team']] = $result['away_logo'];
+                }
             }
             
             echo '<div class="lmc-team-results">';
@@ -453,11 +520,11 @@ class LMC_Blocks {
                 
                 echo '<div class="lmc-result-teams">';
                 echo '<div class="lmc-result-team lmc-result-primary-team ' . ($is_home ? 'lmc-home' : 'lmc-away') . '">';
-                echo '<span class="lmc-result-team-name">' . esc_html($team_name) . '</span>';
+                echo $this->render_team_display($team_name, $display_mode, $logos_data);
                 echo '<span class="lmc-result-score">' . esc_html($team_score) . '</span>';
                 echo '</div>';
                 echo '<div class="lmc-result-team lmc-result-opponent ' . ($is_home ? 'lmc-away' : 'lmc-home') . '">';
-                echo '<span class="lmc-result-team-name">' . esc_html($opponent_name) . '</span>';
+                echo $this->render_team_display($opponent_name, $display_mode, $logos_data);
                 echo '<span class="lmc-result-score">' . esc_html($opponent_score) . '</span>';
                 echo '</div>';
                 echo '</div>';
@@ -493,6 +560,7 @@ class LMC_Blocks {
         $comp_id = isset($attributes['compId']) && !empty($attributes['compId']) ? $attributes['compId'] : null;
         $team_name = isset($attributes['teamName']) && !empty($attributes['teamName']) ? $attributes['teamName'] : null;
         $limit = isset($attributes['limit']) ? absint($attributes['limit']) : 5;
+        $display_mode = isset($attributes['displayMode']) ? $attributes['displayMode'] : 'text';
         
         error_log('LMC Blocks: Rendering team upcoming block with compId: ' . ($comp_id ? $comp_id : 'NULL') . ', team: ' . ($team_name ? $team_name : 'NULL'));
         
@@ -512,6 +580,17 @@ class LMC_Blocks {
             // Get the actual team name being displayed (in case it was auto-selected)
             if (!$team_name) {
                 $team_name = LMC_Data::get_primary_team($comp_id);
+            }
+            
+            // Build logos array
+            $logos_data = array();
+            foreach ($games as $game) {
+                if (isset($game['home_logo']) && !empty($game['home_logo'])) {
+                    $logos_data[$game['home_team']] = $game['home_logo'];
+                }
+                if (isset($game['away_logo']) && !empty($game['away_logo'])) {
+                    $logos_data[$game['away_team']] = $game['away_logo'];
+                }
             }
             
             echo '<div class="lmc-team-upcoming">';
@@ -536,13 +615,13 @@ class LMC_Blocks {
                 
                 echo '<div class="lmc-game-teams">';
                 if ($is_home) {
-                    echo '<div class="lmc-team-primary lmc-team-home">' . esc_html($team_name) . '</div>';
+                    echo '<div class="lmc-team-primary lmc-team-home">' . $this->render_team_display($team_name, $display_mode, $logos_data) . '</div>';
                     echo '<div class="lmc-vs">vs</div>';
-                    echo '<div class="lmc-team-opponent lmc-team-away">' . esc_html($opponent_name) . '</div>';
+                    echo '<div class="lmc-team-opponent lmc-team-away">' . $this->render_team_display($opponent_name, $display_mode, $logos_data) . '</div>';
                 } else {
-                    echo '<div class="lmc-team-opponent lmc-team-home">' . esc_html($opponent_name) . '</div>';
+                    echo '<div class="lmc-team-opponent lmc-team-home">' . $this->render_team_display($opponent_name, $display_mode, $logos_data) . '</div>';
                     echo '<div class="lmc-vs">vs</div>';
-                    echo '<div class="lmc-team-primary lmc-team-away">' . esc_html($team_name) . '</div>';
+                    echo '<div class="lmc-team-primary lmc-team-away">' . $this->render_team_display($team_name, $display_mode, $logos_data) . '</div>';
                 }
                 echo '</div>';
                 
@@ -567,5 +646,89 @@ class LMC_Blocks {
         echo '</div>';
         
         return ob_get_clean();
+    }
+    
+    /**
+     * Render team name with optional logo based on display mode
+     *
+     * @param string $team_name Team name
+     * @param string $display_mode Display mode: 'text', 'image', or 'both'
+     * @param array $logos_data Optional array of team logos (team_name => logo_url)
+     * @return string HTML output
+     */
+    private function render_team_display($team_name, $display_mode = 'text', $logos_data = array()) {
+        if (empty($team_name)) {
+            return '';
+        }
+        
+        $team_key = sanitize_title($team_name);
+        $logo_url = '';
+        
+        // Priority order: Custom logos > Cached logos > Scraped logos
+        
+        // 1. Check custom logos first (uploaded by admin)
+        $custom_logos = get_option('lmc_team_logos', array());
+        if (isset($custom_logos[$team_key])) {
+            $logo_url = $custom_logos[$team_key];
+        }
+        
+        // 2. Check cached logos (downloaded from SportsTG)
+        if (empty($logo_url)) {
+            $cached_logos = get_option('lmc_cached_logos', array());
+            if (isset($cached_logos[$team_key]) && !empty($cached_logos[$team_key]['url'])) {
+                $logo_url = $cached_logos[$team_key]['url'];
+            }
+        }
+        
+        // 3. Fall back to scraped logo URL
+        if (empty($logo_url) && isset($logos_data[$team_name])) {
+            $logo_url = $logos_data[$team_name];
+        }
+        
+        // Convert protocol-relative URLs to HTTPS
+        if (!empty($logo_url) && strpos($logo_url, '//') === 0) {
+            $logo_url = 'https:' . $logo_url;
+        }
+        
+        $output = '<span class="lmc-team-display lmc-display-' . esc_attr($display_mode) . '">';
+        
+        if (($display_mode === 'image' || $display_mode === 'both') && !empty($logo_url)) {
+            $output .= '<img src="' . esc_url($logo_url) . '" alt="' . esc_attr($team_name) . '" class="lmc-team-logo" />';
+        }
+        
+        if ($display_mode === 'text' || $display_mode === 'both') {
+            $output .= '<span class="lmc-team-name">' . esc_html($team_name) . '</span>';
+        }
+        
+        // Fallback if image mode but no logo available
+        if ($display_mode === 'image' && empty($logo_url)) {
+            $output .= '<span class="lmc-team-name lmc-no-logo">' . esc_html($team_name) . '</span>';
+        }
+        
+        $output .= '</span>';
+        
+        return $output;
+    }
+    
+    /**
+     * Render venue name with Google Maps link
+     *
+     * @param string $venue Venue name
+     * @return string HTML output with map link
+     */
+    private function render_venue_with_map($venue) {
+        if (empty($venue)) {
+            return '';
+        }
+        
+        // Create Google Maps search URL
+        $maps_url = 'https://www.google.com/maps/search/' . urlencode($venue);
+        
+        $output = '<span class="lmc-map-icon">📍</span>';
+        $output .= '<a href="' . esc_url($maps_url) . '" target="_blank" rel="noopener noreferrer" title="View on Google Maps">';
+        $output .= esc_html($venue);
+        $output .= '</a>';
+        
+        return $output;
     }
 }

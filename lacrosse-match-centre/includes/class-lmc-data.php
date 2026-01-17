@@ -565,4 +565,52 @@ class LMC_Data {
         
         return $limit ? array_slice($team_upcoming, 0, $limit) : $team_upcoming;
     }
+    
+    /**
+     * Get all teams from ladder data
+     *
+     * @param string $comp_id Competition ID (optional, uses current if not specified)
+     * @return array Array of team data with logos
+     */
+    public static function get_all_teams($comp_id = null) {
+        if (!$comp_id) {
+            $comp_id = self::get_current_competition();
+        }
+        
+        if (!$comp_id) {
+            error_log('LMC Data: No competition ID available for get_all_teams');
+            return array();
+        }
+        
+        $ladder = self::get_ladder($comp_id);
+        
+        if ($ladder === false || empty($ladder)) {
+            return array();
+        }
+        
+        // Remove any duplicates based on team name (shouldn't happen, but safeguard)
+        $unique_teams = array();
+        $seen_teams = array();
+        foreach ($ladder as $team) {
+            $team_name = $team['team'];
+            if (!isset($seen_teams[$team_name])) {
+                $unique_teams[] = $team;
+                $seen_teams[$team_name] = true;
+            }
+        }
+        $ladder = $unique_teams;
+        
+        // Get custom team logos
+        $team_logos = get_option('lmc_team_logos', array());
+        
+        // Merge custom logos with scraped data
+        foreach ($ladder as &$team) {
+            $team_key = sanitize_title($team['team']);
+            if (isset($team_logos[$team_key])) {
+                $team['logo'] = $team_logos[$team_key];
+            }
+        }
+        
+        return $ladder;
+    }
 }

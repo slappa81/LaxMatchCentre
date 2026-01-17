@@ -41,6 +41,10 @@
             compId: {
                 type: 'string',
                 default: ''
+            },
+            displayMode: {
+                type: 'string',
+                default: 'text'
             }
         },
         
@@ -67,6 +71,19 @@
                             options: competitions,
                             onChange: function(value) {
                                 setAttributes({ compId: value });
+                            }
+                        }),
+                        el(SelectControl, {
+                            label: __('Display Mode', 'lacrosse-match-centre'),
+                            help: __('Show team logos, names, or both', 'lacrosse-match-centre'),
+                            value: attributes.displayMode,
+                            options: [
+                                { label: 'Team Names Only', value: 'text' },
+                                { label: 'Team Logos Only', value: 'image' },
+                                { label: 'Both Logo and Name', value: 'both' }
+                            ],
+                            onChange: function(value) {
+                                setAttributes({ displayMode: value });
                             }
                         })
                     )
@@ -107,6 +124,10 @@
             limit: {
                 type: 'number',
                 default: 5
+            },
+            displayMode: {
+                type: 'string',
+                default: 'text'
             }
         },
         
@@ -143,6 +164,19 @@
                             },
                             min: 1,
                             max: 20
+                        }),
+                        el(SelectControl, {
+                            label: __('Display Mode', 'lacrosse-match-centre'),
+                            help: __('Show team logos, names, or both', 'lacrosse-match-centre'),
+                            value: attributes.displayMode,
+                            options: [
+                                { label: 'Team Names Only', value: 'text' },
+                                { label: 'Team Logos Only', value: 'image' },
+                                { label: 'Both Logo and Name', value: 'both' }
+                            ],
+                            onChange: function(value) {
+                                setAttributes({ displayMode: value });
+                            }
                         })
                     )
                 ),
@@ -182,6 +216,10 @@
             limit: {
                 type: 'number',
                 default: 5
+            },
+            displayMode: {
+                type: 'string',
+                default: 'text'
             }
         },
         
@@ -218,6 +256,19 @@
                             },
                             min: 1,
                             max: 20
+                        }),
+                        el(SelectControl, {
+                            label: __('Display Mode', 'lacrosse-match-centre'),
+                            help: __('Show team logos, names, or both', 'lacrosse-match-centre'),
+                            value: attributes.displayMode,
+                            options: [
+                                { label: 'Team Names Only', value: 'text' },
+                                { label: 'Team Logos Only', value: 'image' },
+                                { label: 'Both Logo and Name', value: 'both' }
+                            ],
+                            onChange: function(value) {
+                                setAttributes({ displayMode: value });
+                            }
                         })
                     )
                 ),
@@ -261,6 +312,10 @@
             limit: {
                 type: 'number',
                 default: 5
+            },
+            displayMode: {
+                type: 'string',
+                default: 'text'
             }
         },
         
@@ -306,6 +361,19 @@
                             },
                             min: 1,
                             max: 20
+                        }),
+                        el(SelectControl, {
+                            label: __('Display Mode', 'lacrosse-match-centre'),
+                            help: __('Choose how to display team names', 'lacrosse-match-centre'),
+                            value: attributes.displayMode,
+                            options: [
+                                { label: 'Text Only', value: 'text' },
+                                { label: 'Image Only', value: 'image' },
+                                { label: 'Both', value: 'both' }
+                            ],
+                            onChange: function(value) {
+                                setAttributes({ displayMode: value });
+                            }
                         })
                     )
                 ),
@@ -353,6 +421,10 @@
             limit: {
                 type: 'number',
                 default: 5
+            },
+            displayMode: {
+                type: 'string',
+                default: 'text'
             }
         },
         
@@ -398,6 +470,19 @@
                             },
                             min: 1,
                             max: 20
+                        }),
+                        el(SelectControl, {
+                            label: __('Display Mode', 'lacrosse-match-centre'),
+                            help: __('Choose how to display team names', 'lacrosse-match-centre'),
+                            value: attributes.displayMode,
+                            options: [
+                                { label: 'Text Only', value: 'text' },
+                                { label: 'Image Only', value: 'image' },
+                                { label: 'Both', value: 'both' }
+                            ],
+                            onChange: function(value) {
+                                setAttributes({ displayMode: value });
+                            }
                         })
                     )
                 ),
