@@ -823,6 +823,22 @@ JAVASCRIPT;
                 <p>Clear all cached data to force fresh data loading.</p>
                 <button type="button" id="lmc-clear-cache" class="button">Clear Cache</button>
                 
+                <h2>Automatic Scraping</h2>
+                <div style="background: #f0f0f1; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                    <?php
+                    $next_run = wp_next_scheduled('lmc_hourly_scrape');
+                    if ($next_run) {
+                        $time_until = human_time_diff(time(), $next_run);
+                        echo '<p><strong>Status:</strong> ✓ Enabled - runs every 60 minutes</p>';
+                        echo '<p><strong>Next Run:</strong> In ' . esc_html($time_until) . ' (' . esc_html(date_i18n(get_option('date_format') . ' ' . get_option('time_format'), $next_run)) . ')</p>';
+                        echo '<p style="color: #666; font-size: 0.9em;">All configured competitions will be automatically scraped every hour.</p>';
+                    } else {
+                        echo '<p style="color: #d63638;"><strong>Status:</strong> ✗ Not scheduled</p>';
+                        echo '<p>Deactivate and reactivate the plugin to enable automatic scraping.</p>';
+                    }
+                    ?>
+                </div>
+                
                 <p class="submit">
                     <?php submit_button('Save Settings', 'primary', 'submit', false); ?>
                 </p>

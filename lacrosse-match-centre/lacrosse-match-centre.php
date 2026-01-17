@@ -49,6 +49,9 @@ class Lacrosse_Match_Centre {
         // Register widgets
         add_action('widgets_init', array($this, 'register_widgets'));
         
+        // Setup cron for auto-scraping
+        add_action('lmc_hourly_scrape', array($this, 'cron_scrape_competitions'));
+        
         // Enqueue styles
         add_action('wp_enqueue_scripts', array($this, 'enqueue_styles'));
         
@@ -190,6 +193,12 @@ class Lacrosse_Match_Centre {
             $htaccess_content = "# Protect data directory\nOrder deny,allow\nDeny from all\n<Files ~ \"\\.(json)$\">\n    Allow from all\n</Files>";
             @file_put_contents($htaccess_file, $htaccess_content);
         }
+        
+        // Schedule hourly cron job for auto-scraping
+        if (!wp_next_scheduled('lmc_hourly_scrape')) {
+            wp_schedule_event(time(), 'hourly', 'lmc_hourly_scrape');
+            error_log('LMC: Scheduled hourly auto-scraping');
+        }
     }
     
     /**
@@ -200,6 +209,67 @@ class Lacrosse_Match_Centre {
         if (class_exists('LMC_Data')) {
             LMC_Data::clear_all_cache();
         }
+        
+        // Clear scheduled cron job
+        $timestamp = wp_next_scheduled('lmc_hourly_scrape');
+        if ($timestamp) {
+            wp_unschedule_event($timestamp, 'lmc_hourly_scrape');
+            error_log('LMC: Unscheduled hourly auto-scraping');
+        }
+    }
+    
+    /**
+     * Cron handler to scrape all competitions
+     */
+    public function cron_scrape_competitions() {
+        error_log('LMC Cron: Starting hourly scrape of all competitions');
+        
+        // Get settings
+        $settings = get_option('lmc_settings', array());
+        $competitions = isset($settings['competitions']) ? $settings['competitions'] : array();
+        
+        if (empty($competitions)) {
+            error_log('LMC Cron: No competitions configured, skipping scrape');
+            return;
+        }
+        
+        // Load scraper if not already loaded
+        if (!class_exists('LMC_Scraper')) {
+            require_once LMC_PLUGIN_DIR . 'includes/class-lmc-scraper.php';
+        }
+        
+        $scraper = new LMC_Scraper();
+        $success_count = 0;
+        $error_count = 0;
+        
+        // Scrape each competition
+        foreach ($competitions as $comp) {
+            $comp_id = isset($comp['id']) ? $comp['id'] : '';
+            $comp_name = isset($comp['name']) ? $comp['name'] : '';
+            
+            if (empty($comp_id)) {
+                continue;
+            }
+            
+            error_log("LMC Cron: Scraping competition: {$comp_name} (ID: {$comp_id})");
+            
+            try {
+                $result = $scraper->scrape_competition($comp_id, $comp_name);
+                
+                if ($result['success']) {
+                    $success_count++;
+                    error_log("LMC Cron: Successfully scraped {$comp_name}");
+                } else {
+                    $error_count++;
+                    error_log("LMC Cron: Error scraping {$comp_name}: " . $result['message']);
+                }
+            } catch (Exception $e) {
+                $error_count++;
+                error_log("LMC Cron: Exception scraping {$comp_name}: " . $e->getMessage());
+            }
+        }
+        
+        error_log("LMC Cron: Completed hourly scrape - Success: {$success_count}, Errors: {$error_count}");
     }
 }
 
