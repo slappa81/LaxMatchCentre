@@ -404,4 +404,165 @@ class LMC_Data {
     public static function get_current_competition_id() {
         return self::get_current_competition();
     }
+    
+    /**
+     * Get primary team for a competition
+     *
+     * @param string $comp_id Competition ID (optional, uses current if not specified)
+     * @return string|false Primary team name or false if not set
+     */
+    public static function get_primary_team($comp_id = null) {
+        if (!$comp_id) {
+            $comp_id = self::get_current_competition();
+        }
+        
+        if (!$comp_id) {
+            return false;
+        }
+        
+        $settings = get_option('lmc_settings', array());
+        $competitions = isset($settings['competitions']) ? $settings['competitions'] : array();
+        
+        foreach ($competitions as $comp) {
+            if ($comp['id'] === $comp_id) {
+                return isset($comp['primary_team']) && !empty($comp['primary_team']) ? $comp['primary_team'] : false;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Get list of all teams in a competition
+     *
+     * @param string $comp_id Competition ID
+     * @return array|false Array of team names or false on failure
+     */
+    public static function get_teams_list($comp_id) {
+        if (!$comp_id) {
+            return false;
+        }
+        
+        // Get fixtures to extract teams
+        $fixtures = self::get_fixtures($comp_id);
+        
+        if ($fixtures === false || empty($fixtures)) {
+            error_log('LMC Data: No fixtures found for competition ' . $comp_id);
+            return false;
+        }
+        
+        $teams = array();
+        
+        foreach ($fixtures as $fixture) {
+            if (isset($fixture['home_team']) && !empty($fixture['home_team'])) {
+                $teams[$fixture['home_team']] = true;
+            }
+            if (isset($fixture['away_team']) && !empty($fixture['away_team'])) {
+                $teams[$fixture['away_team']] = true;
+            }
+        }
+        
+        // Return sorted unique team names
+        $team_list = array_keys($teams);
+        sort($team_list);
+        
+        error_log('LMC Data: Found ' . count($team_list) . ' unique teams');
+        return $team_list;
+    }
+    
+    /**
+     * Get results for a specific team
+     *
+     * @param string $comp_id Competition ID (optional, uses current if not specified)
+     * @param string $team_name Team name (optional, uses primary team if not specified)
+     * @param int $limit Number of results to return (default: all)
+     * @return array|false Team results or false on failure
+     */
+    public static function get_team_results($comp_id = null, $team_name = null, $limit = null) {
+        if (!$comp_id) {
+            $comp_id = self::get_current_competition();
+        }
+        
+        if (!$comp_id) {
+            error_log('LMC Data: No competition ID available for team results');
+            return false;
+        }
+        
+        if (!$team_name) {
+            $team_name = self::get_primary_team($comp_id);
+        }
+        
+        if (!$team_name) {
+            error_log('LMC Data: No team name available for team results');
+            return false;
+        }
+        
+        // Get all results
+        $all_results = self::get_results($comp_id);
+        
+        if ($all_results === false) {
+            return false;
+        }
+        
+        // Filter results where team is home or away
+        $team_results = array_filter($all_results, function($result) use ($team_name) {
+            return (isset($result['home_team']) && $result['home_team'] === $team_name) ||
+                   (isset($result['away_team']) && $result['away_team'] === $team_name);
+        });
+        
+        // Re-index array
+        $team_results = array_values($team_results);
+        
+        error_log('LMC Data: Found ' . count($team_results) . ' results for team ' . $team_name);
+        
+        return $limit ? array_slice($team_results, 0, $limit) : $team_results;
+    }
+    
+    /**
+     * Get upcoming games for a specific team
+     *
+     * @param string $comp_id Competition ID (optional, uses current if not specified)
+     * @param string $team_name Team name (optional, uses primary team if not specified)
+     * @param int $limit Number of games to return (default: all)
+     * @return array|false Team upcoming games or false on failure
+     */
+    public static function get_team_upcoming($comp_id = null, $team_name = null, $limit = null) {
+        if (!$comp_id) {
+            $comp_id = self::get_current_competition();
+        }
+        
+        if (!$comp_id) {
+            error_log('LMC Data: No competition ID available for team upcoming');
+            return false;
+        }
+        
+        if (!$team_name) {
+            $team_name = self::get_primary_team($comp_id);
+        }
+        
+        if (!$team_name) {
+            error_log('LMC Data: No team name available for team upcoming');
+            return false;
+        }
+        
+        // Get all upcoming games
+        $all_upcoming = self::get_upcoming_games($comp_id);
+        
+        if ($all_upcoming === false) {
+            return false;
+        }
+        
+        // Filter games where team is home or away
+        $team_upcoming = array_filter($all_upcoming, function($game) use ($team_name) {
+            return (isset($game['home_team']) && $game['home_team'] === $team_name) ||
+                   (isset($game['away_team']) && $game['away_team'] === $team_name);
+        });
+        
+        // Re-index array
+        $team_upcoming = array_values($team_upcoming);
+        
+        error_log('LMC Data: Found ' . count($team_upcoming) . ' upcoming games for team ' . $team_name);
+        
+        return $limit ? array_slice($team_upcoming, 0, $limit) : $team_upcoming;
+    }
 }

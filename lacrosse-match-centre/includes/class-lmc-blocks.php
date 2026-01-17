@@ -162,6 +162,64 @@ class LMC_Blocks {
         ));
         
         error_log('LMC Blocks: Results block registered');
+        
+        // Register team results block
+        register_block_type('lacrosse-match-centre/team-results', array(
+            'api_version' => 2,
+            'editor_script' => 'lacrosse-match-centre-blocks',
+            'editor_style' => 'lacrosse-match-centre-blocks-editor',
+            'style' => 'lacrosse-match-centre-blocks',
+            'attributes' => array(
+                'title' => array(
+                    'type' => 'string',
+                    'default' => 'Team Results'
+                ),
+                'compId' => array(
+                    'type' => 'string',
+                    'default' => ''
+                ),
+                'teamName' => array(
+                    'type' => 'string',
+                    'default' => ''
+                ),
+                'limit' => array(
+                    'type' => 'number',
+                    'default' => 5
+                )
+            ),
+            'render_callback' => array($this, 'render_team_results_block')
+        ));
+        
+        error_log('LMC Blocks: Team Results block registered');
+        
+        // Register team upcoming games block
+        register_block_type('lacrosse-match-centre/team-upcoming', array(
+            'api_version' => 2,
+            'editor_script' => 'lacrosse-match-centre-blocks',
+            'editor_style' => 'lacrosse-match-centre-blocks-editor',
+            'style' => 'lacrosse-match-centre-blocks',
+            'attributes' => array(
+                'title' => array(
+                    'type' => 'string',
+                    'default' => 'Team Upcoming Games'
+                ),
+                'compId' => array(
+                    'type' => 'string',
+                    'default' => ''
+                ),
+                'teamName' => array(
+                    'type' => 'string',
+                    'default' => ''
+                ),
+                'limit' => array(
+                    'type' => 'number',
+                    'default' => 5
+                )
+            ),
+            'render_callback' => array($this, 'render_team_upcoming_block')
+        ));
+        
+        error_log('LMC Blocks: Team Upcoming block registered');
         error_log('LMC Blocks: All blocks registered successfully');
     }
     
@@ -338,6 +396,172 @@ class LMC_Blocks {
             echo '</div>';
         } else {
             echo '<p class="lmc-no-data">No results available. Please scrape data from the admin panel.</p>';
+        }
+        
+        echo '</div>';
+        
+        return ob_get_clean();
+    }
+    
+    /**
+     * Render team results block
+     */
+    public function render_team_results_block($attributes) {
+        $title = isset($attributes['title']) ? $attributes['title'] : 'Team Results';
+        $comp_id = isset($attributes['compId']) && !empty($attributes['compId']) ? $attributes['compId'] : null;
+        $team_name = isset($attributes['teamName']) && !empty($attributes['teamName']) ? $attributes['teamName'] : null;
+        $limit = isset($attributes['limit']) ? absint($attributes['limit']) : 5;
+        
+        error_log('LMC Blocks: Rendering team results block with compId: ' . ($comp_id ? $comp_id : 'NULL') . ', team: ' . ($team_name ? $team_name : 'NULL'));
+        
+        ob_start();
+        
+        echo '<div class="wp-block-lacrosse-match-centre-team-results lmc-team-results-block">';
+        
+        if (!empty($title)) {
+            echo '<h2 class="lmc-block-title">' . esc_html($title) . '</h2>';
+        }
+        
+        // Get team results
+        $results = LMC_Data::get_team_results($comp_id, $team_name, $limit);
+        error_log('LMC Blocks: Team results data result: ' . ($results ? count($results) . ' results' : 'FALSE/NULL'));
+        
+        if ($results && !empty($results)) {
+            // Get the actual team name being displayed (in case it was auto-selected)
+            if (!$team_name) {
+                $team_name = LMC_Data::get_primary_team($comp_id);
+            }
+            
+            echo '<div class="lmc-team-results">';
+            
+            foreach ($results as $result) {
+                $is_home = ($result['home_team'] === $team_name);
+                $team_score = $is_home ? $result['home_score'] : $result['away_score'];
+                $opponent_score = $is_home ? $result['away_score'] : $result['home_score'];
+                $opponent_name = $is_home ? $result['away_team'] : $result['home_team'];
+                $venue_prefix = $is_home ? 'vs' : '@';
+                
+                echo '<div class="lmc-result lmc-team-result">';
+                echo '<div class="lmc-result-round">Round ' . esc_html($result['round']) . '</div>';
+                
+                // Use formatted datetime if available
+                if (!empty($result['formatted_datetime'])) {
+                    echo '<div class="lmc-result-datetime">' . esc_html($result['formatted_datetime']) . '</div>';
+                } else {
+                    echo '<div class="lmc-result-date">' . esc_html($result['date']) . '</div>';
+                }
+                
+                echo '<div class="lmc-result-teams">';
+                echo '<div class="lmc-result-team lmc-result-primary-team ' . ($is_home ? 'lmc-home' : 'lmc-away') . '">';
+                echo '<span class="lmc-result-team-name">' . esc_html($team_name) . '</span>';
+                echo '<span class="lmc-result-score">' . esc_html($team_score) . '</span>';
+                echo '</div>';
+                echo '<div class="lmc-result-team lmc-result-opponent ' . ($is_home ? 'lmc-away' : 'lmc-home') . '">';
+                echo '<span class="lmc-result-team-name">' . esc_html($opponent_name) . '</span>';
+                echo '<span class="lmc-result-score">' . esc_html($opponent_score) . '</span>';
+                echo '</div>';
+                echo '</div>';
+                
+                if (!empty($result['venue'])) {
+                    echo '<div class="lmc-result-venue">' . esc_html($venue_prefix . ' ' . $result['venue']) . '</div>';
+                }
+                echo '</div>';
+            }
+            
+            echo '</div>';
+        } else {
+            $message = 'No results available for ';
+            if ($team_name) {
+                $message .= esc_html($team_name) . '. ';
+            } else {
+                $message .= 'the selected team. Please set a primary team in the admin panel or ';
+            }
+            $message .= 'Please scrape data from the admin panel.';
+            echo '<p class="lmc-no-data">' . $message . '</p>';
+        }
+        
+        echo '</div>';
+        
+        return ob_get_clean();
+    }
+    
+    /**
+     * Render team upcoming games block
+     */
+    public function render_team_upcoming_block($attributes) {
+        $title = isset($attributes['title']) ? $attributes['title'] : 'Team Upcoming Games';
+        $comp_id = isset($attributes['compId']) && !empty($attributes['compId']) ? $attributes['compId'] : null;
+        $team_name = isset($attributes['teamName']) && !empty($attributes['teamName']) ? $attributes['teamName'] : null;
+        $limit = isset($attributes['limit']) ? absint($attributes['limit']) : 5;
+        
+        error_log('LMC Blocks: Rendering team upcoming block with compId: ' . ($comp_id ? $comp_id : 'NULL') . ', team: ' . ($team_name ? $team_name : 'NULL'));
+        
+        ob_start();
+        
+        echo '<div class="wp-block-lacrosse-match-centre-team-upcoming lmc-team-upcoming-block">';
+        
+        if (!empty($title)) {
+            echo '<h2 class="lmc-block-title">' . esc_html($title) . '</h2>';
+        }
+        
+        // Get team upcoming games
+        $games = LMC_Data::get_team_upcoming($comp_id, $team_name, $limit);
+        error_log('LMC Blocks: Team upcoming data result: ' . ($games ? count($games) . ' games' : 'FALSE/NULL'));
+        
+        if ($games && !empty($games)) {
+            // Get the actual team name being displayed (in case it was auto-selected)
+            if (!$team_name) {
+                $team_name = LMC_Data::get_primary_team($comp_id);
+            }
+            
+            echo '<div class="lmc-team-upcoming">';
+            
+            foreach ($games as $game) {
+                $is_home = ($game['home_team'] === $team_name);
+                $opponent_name = $is_home ? $game['away_team'] : $game['home_team'];
+                $venue_prefix = $is_home ? 'vs' : '@';
+                
+                echo '<div class="lmc-game lmc-team-game">';
+                echo '<div class="lmc-game-round">Round ' . esc_html($game['round']) . '</div>';
+                
+                // Use formatted datetime if available
+                if (!empty($game['formatted_datetime'])) {
+                    echo '<div class="lmc-game-datetime">' . esc_html($game['formatted_datetime']) . '</div>';
+                } else {
+                    echo '<div class="lmc-game-date">' . esc_html($game['date']) . '</div>';
+                    if (!empty($game['time'])) {
+                        echo '<div class="lmc-game-time">' . esc_html($game['time']) . '</div>';
+                    }
+                }
+                
+                echo '<div class="lmc-game-teams">';
+                if ($is_home) {
+                    echo '<div class="lmc-team-primary lmc-team-home">' . esc_html($team_name) . '</div>';
+                    echo '<div class="lmc-vs">vs</div>';
+                    echo '<div class="lmc-team-opponent lmc-team-away">' . esc_html($opponent_name) . '</div>';
+                } else {
+                    echo '<div class="lmc-team-opponent lmc-team-home">' . esc_html($opponent_name) . '</div>';
+                    echo '<div class="lmc-vs">vs</div>';
+                    echo '<div class="lmc-team-primary lmc-team-away">' . esc_html($team_name) . '</div>';
+                }
+                echo '</div>';
+                
+                if (!empty($game['venue'])) {
+                    echo '<div class="lmc-game-venue">' . esc_html($venue_prefix . ' ' . $game['venue']) . '</div>';
+                }
+                echo '</div>';
+            }
+            
+            echo '</div>';
+        } else {
+            $message = 'No upcoming games available for ';
+            if ($team_name) {
+                $message .= esc_html($team_name) . '. ';
+            } else {
+                $message .= 'the selected team. Please set a primary team in the admin panel or ';
+            }
+            $message .= 'Please scrape data from the admin panel.';
+            echo '<p class="lmc-no-data">' . $message . '</p>';
         }
         
         echo '</div>';

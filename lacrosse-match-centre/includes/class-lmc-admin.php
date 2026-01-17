@@ -29,6 +29,7 @@ class LMC_Admin {
         add_action('wp_ajax_lmc_clear_cache', array($this, 'ajax_clear_cache'));
         add_action('wp_ajax_lmc_list_seasons', array($this, 'ajax_list_seasons'));
         add_action('wp_ajax_lmc_list_available_competitions', array($this, 'ajax_list_available_competitions'));
+        add_action('wp_ajax_lmc_get_teams', array($this, 'ajax_get_teams'));
     }
     
     /**
@@ -136,10 +137,20 @@ class LMC_Admin {
         if (isset($input['competitions']) && is_array($input['competitions'])) {
             $sanitized['competitions'] = array();
             foreach ($input['competitions'] as $comp) {
-                $sanitized['competitions'][] = array(
+                $comp_data = array(
                     'id' => sanitize_text_field($comp['id']),
                     'name' => sanitize_text_field($comp['name'])
                 );
+                
+                // Add optional fields if present
+                if (isset($comp['season'])) {
+                    $comp_data['season'] = sanitize_text_field($comp['season']);
+                }
+                if (isset($comp['primary_team']) && !empty($comp['primary_team'])) {
+                    $comp_data['primary_team'] = sanitize_text_field($comp['primary_team']);
+                }
+                
+                $sanitized['competitions'][] = $comp_data;
             }
         } else {
             $sanitized['competitions'] = array();
@@ -194,6 +205,7 @@ class LMC_Admin {
         $scraper_nonce = wp_create_nonce('lmc_scraper_nonce');
         $cache_nonce = wp_create_nonce('lmc_cache_nonce');
         $list_competitions_nonce = wp_create_nonce('lmc_list_competitions_nonce');
+        $get_teams_nonce = wp_create_nonce('lmc_get_teams_nonce');
         
         $inline_script = <<<JAVASCRIPT
             jQuery(document).ready(function($) {
@@ -478,6 +490,52 @@ class LMC_Admin {
                     
                     alert('Competition added! Remember to save your settings.');
                 });
+                
+                // Get teams for competition
+                $(document).on('click', '.lmc-get-teams-btn', function() {
+                    var btn = $(this);
+                    var row = btn.closest('.lmc-competition-row');
+                    var compId = row.find('.comp-id').val() || row.find('input[type=\"hidden\"][name*=\"[id]\"]').val();
+                    var teamSelect = row.find('.lmc-team-select');
+                    var teamStatus = row.find('.lmc-team-status');
+                    
+                    if (!compId) {
+                        alert('Competition ID not found');
+                        return;
+                    }
+                    
+                    btn.prop('disabled', true).text('Loading Teams...');
+                    teamStatus.html('<span style=\"color: blue;\">⏳ Fetching teams...</span>');
+                    
+                    $.ajax({
+                        url: ajaxurl,
+                        type: 'POST',
+                        data: {
+                            action: 'lmc_get_teams',
+                            nonce: '{$get_teams_nonce}',
+                            comp_id: compId
+                        },
+                        success: function(response) {
+                            if (response.success && response.data.teams) {
+                                // Populate select dropdown
+                                teamSelect.empty();
+                                teamSelect.append('<option value=\"\">-- Select Primary Team --</option>');
+                                response.data.teams.forEach(function(team) {
+                                    teamSelect.append('<option value=\"' + team + '\">' + team + '</option>');
+                                });
+                                teamSelect.show();
+                                teamStatus.html('<span style=\"color: green;\">✓ Found ' + response.data.teams.length + ' teams</span>');
+                            } else {
+                                teamStatus.html('<span style=\"color: red;\">✗ ' + (response.data ? response.data.message : 'No teams found') + '</span>');
+                            }
+                            btn.prop('disabled', false).text('Refresh Teams');
+                        },
+                        error: function() {
+                            teamStatus.html('<span style=\"color: red;\">✗ Error fetching teams</span>');
+                            btn.prop('disabled', false).text('Refresh Teams');
+                        }
+                    });
+                });
             });
 JAVASCRIPT;
         
@@ -714,7 +772,60 @@ JAVASCRIPT;
             ob_end_clean();
             wp_send_json_error(array('message' => 'Error: ' . $e->getMessage()));
         }
-    }    
+    }
+    
+    /**
+     * AJAX handler for getting teams list from fixtures
+     */
+    public function ajax_get_teams() {
+        // Suppress error display and start output buffering
+        @ini_set('display_errors', '0');
+        error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED & ~E_STRICT);
+        
+        // Clean any existing output
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+        ob_start();
+        
+        check_ajax_referer('lmc_get_teams_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            ob_end_clean();
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+        }
+        
+        $comp_id = isset($_POST['comp_id']) ? sanitize_text_field($_POST['comp_id']) : '';
+        
+        if (empty($comp_id)) {
+            ob_end_clean();
+            wp_send_json_error(array('message' => 'Competition ID is required'));
+        }
+        
+        error_log('LMC Admin: Fetching teams for competition ' . $comp_id);
+        
+        try {
+            $teams = LMC_Data::get_teams_list($comp_id);
+            
+            // Discard any output
+            ob_end_clean();
+            
+            if ($teams === false || empty($teams)) {
+                wp_send_json_error(array('message' => 'No teams found. Please scrape the competition data first.'));
+            } else {
+                error_log('LMC Admin: Found ' . count($teams) . ' teams');
+                wp_send_json_success(array(
+                    'message' => 'Found ' . count($teams) . ' teams',
+                    'teams' => $teams
+                ));
+            }
+        } catch (Exception $e) {
+            error_log('LMC Admin: Exception while getting teams: ' . $e->getMessage());
+            ob_end_clean();
+            wp_send_json_error(array('message' => 'Error: ' . $e->getMessage()));
+        }
+    }
+    
     /**
      * Render settings page
      */
@@ -773,6 +884,28 @@ JAVASCRIPT;
                             <strong>Competition ID:</strong> <code><?php echo esc_html($comp['id']); ?></code>
                         </p>
                         
+                        <div style="margin: 10px 0;">
+                            <label><strong>Primary Team:</strong></label><br>
+                            <select name="lmc_settings[competitions][<?php echo $index; ?>][primary_team]" class="lmc-team-select regular-text" style="max-width: 400px;">
+                                <option value="">-- Select Primary Team --</option>
+                                <?php
+                                // Load teams if data exists
+                                $teams = LMC_Data::get_teams_list($comp['id']);
+                                if ($teams && !empty($teams)) {
+                                    $current_team = isset($comp['primary_team']) ? $comp['primary_team'] : '';
+                                    foreach ($teams as $team) {
+                                        echo '<option value="' . esc_attr($team) . '"' . selected($current_team, $team, false) . '>' . esc_html($team) . '</option>';
+                                    }
+                                }
+                                ?>
+                            </select>
+                            <button type="button" class="button lmc-get-teams-btn" style="margin-left: 5px;">
+                                <?php echo ($teams && !empty($teams)) ? 'Refresh Teams' : 'Load Teams'; ?>
+                            </button>
+                            <div class="lmc-team-status" style="margin-top: 5px;"></div>
+                            <p class="description">Select the primary team to display in team-specific blocks</p>
+                        </div>
+                        
                         <br>
                         <button type="button" class="button lmc-scrape-btn">Scrape Data</button>
                         <button type="button" class="button lmc-remove-competition">Remove</button>
@@ -812,6 +945,16 @@ JAVASCRIPT;
                         <input type="text" name="lmc_settings[competitions][INDEX][name]" class="comp-name regular-text" placeholder="Competition Name">
                         <input type="hidden" name="lmc_settings[competitions][INDEX][season]" class="comp-season" value="">
                         <br>
+                        
+                        <div style="margin: 10px 0;">
+                            <label><strong>Primary Team:</strong></label><br>
+                            <select name="lmc_settings[competitions][INDEX][primary_team]" class="lmc-team-select regular-text" style="max-width: 400px; display: none;">
+                                <option value="">-- Select Primary Team --</option>
+                            </select>
+                            <button type="button" class="button lmc-get-teams-btn" style="margin-left: 5px;">Load Teams</button>
+                            <div class="lmc-team-status" style="margin-top: 5px;"></div>
+                            <p class="description">Select the primary team to display in team-specific blocks</p>
+                        </div>
                         
                         <br>
                         <button type="button" class="button lmc-scrape-btn">Scrape Data</button>
