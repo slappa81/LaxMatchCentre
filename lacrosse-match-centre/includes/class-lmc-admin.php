@@ -832,7 +832,7 @@ JAVASCRIPT;
                     if ($next_run) {
                         $time_until = human_time_diff(time(), $next_run);
                         echo '<p><strong>Status:</strong> ✓ Enabled - runs every 60 minutes</p>';
-                        echo '<p><strong>Next Run:</strong> In ' . esc_html($time_until) . ' (' . esc_html(date_i18n(get_option('date_format') . ' ' . get_option('time_format'), $next_run)) . ')</p>';
+                        echo '<p><strong>Next Run:</strong> In ' . esc_html($time_until) . ' (' . esc_html(wp_date(get_option('date_format') . ' ' . get_option('time_format'), $next_run)) . ')</p>';
                         echo '<p style="color: #666; font-size: 0.9em;">All configured competitions will be automatically scraped every hour.</p>';
                     } else {
                         echo '<p style="color: #d63638;"><strong>Status:</strong> ✗ Not scheduled</p>';
