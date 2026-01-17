@@ -605,15 +605,19 @@ class LMC_Scraper {
      * @return array|false Array of competitions with IDs and names, or false on failure
      */
     public function list_competitions($association_id, $season_id) {
+        error_log('LMC Scraper: list_competitions() called - START');
         // Use the competitions listing page with season
         $url = "{$this->base_url}/assoc_page.cgi?c=0-{$association_id}-0-0-0&a=COMPS&seasonID={$season_id}";
         
         error_log('LMC Scraper: Fetching competitions from ' . $url);
+        error_log('LMC Scraper: About to call wp_remote_get...');
         
         $response = wp_remote_get($url, array(
             'timeout' => 30,
             'user-agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         ));
+        
+        error_log('LMC Scraper: wp_remote_get completed, checking response...');
         
         if (is_wp_error($response)) {
             error_log('LMC Scraper: Failed to fetch competitions - ' . $response->get_error_message());

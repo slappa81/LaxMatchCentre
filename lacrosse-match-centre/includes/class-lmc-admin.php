@@ -197,14 +197,6 @@ class LMC_Admin {
         
         $inline_script = <<<JAVASCRIPT
             jQuery(document).ready(function($) {
-                // Add competition
-                $('#lmc-add-competition').on('click', function() {
-                    var template = $('#competition-template').html();
-                    var index = $('.lmc-competition-row').length;
-                    template = template.replace(/INDEX/g, index);
-                    $('#lmc-competitions-list').append(template);
-                });
-                
                 // Remove competition
                 $(document).on('click', '.lmc-remove-competition', function() {
                     $(this).closest('.lmc-competition-row').remove();
@@ -354,6 +346,7 @@ class LMC_Admin {
                     var btn = $(this);
                     var associationId = $('#lmc-discover-association-id').val().trim();
                     var seasonId = $('#lmc-season-select').val();
+                    var seasonName = $('#lmc-season-select option:selected').text();
                     var statusDiv = $('#lmc-discover-status');
                     var resultsDiv = $('#lmc-discover-results');
                     
@@ -374,7 +367,8 @@ class LMC_Admin {
                             action: 'lmc_list_available_competitions',
                             nonce: '{$list_competitions_nonce}',
                             association_id: associationId,
-                            season_id: seasonId
+                            season_id: seasonId,
+                            season_name: seasonName
                         },
                         success: function(response) {
                             btn.prop('disabled', false).text('Load Competitions');
@@ -394,12 +388,12 @@ class LMC_Admin {
                                 comps.forEach(function(comp) {
                                     html += '<div style=\"margin: 8px 0; padding: 8px; border-bottom: 1px solid #eee;\">';
                                     html += '<label style=\"display: flex; align-items: center; cursor: pointer;\">';
-                                    html += '<input type=\"checkbox\" class=\"lmc-comp-checkbox\" data-id=\"' + comp.id + '\" data-name=\"' + comp.name + '\" style=\"margin-right: 10px;\">';
-                                    html += '<span style=\"flex: 1;\"><strong>' + comp.name + '</strong></span>';
-                                    html += '<code style=\"font-size: 11px; color: #666;\">' + comp.id + '</code>';
+                                    html += '<input type="checkbox" class="lmc-comp-checkbox" data-id="' + comp.id + '" data-name="' + comp.name + '" data-season="' + seasonName + '" style="margin-right: 10px;">';
+                                    html += '<span style="flex: 1;"><strong>' + comp.name + '</strong></span>';
+                                    html += '<code style="font-size: 11px; color: #666;">' + comp.id + '</code>';
                                     html += '</label>';
                                     html += '</div>';
-                                });
+                                });  
                                 
                                 html += '</div></div>';
                                 resultsDiv.html(html);
@@ -435,6 +429,7 @@ class LMC_Admin {
                     checked.each(function() {
                         var compId = $(this).data('id');
                         var compName = $(this).data('name');
+                        var seasonName = $(this).data('season');
                         
                         // Add a new competition row
                         var template = $('#competition-template').html();
@@ -442,10 +437,11 @@ class LMC_Admin {
                         template = template.replace(/INDEX/g, index);
                         $('#lmc-competitions-list').append(template);
                         
-                        // Fill in the values
+                        // Fill in the values with season prefix
                         var newRow = $('.lmc-competition-row').last();
                         newRow.find('.comp-id').val(compId);
-                        newRow.find('.comp-name').val(compName);
+                        newRow.find('.comp-name').val(seasonName + ' - ' + compName);
+                        newRow.find('.comp-season').val(seasonName);
                     });
                     
                     // Clear the discovery results
@@ -692,8 +688,11 @@ JAVASCRIPT;
         error_log('LMC Admin: Fetching available competitions for association ' . $association_id . ', season ' . $season_id);
         
         try {
+            error_log('LMC Admin: Creating scraper instance...');
             $scraper = new LMC_Scraper();
+            error_log('LMC Admin: Calling list_competitions...');
             $competitions = $scraper->list_competitions($association_id, $season_id);
+            error_log('LMC Admin: list_competitions returned, processing results...');
             
             // Discard any output
             ob_end_clean();
@@ -747,7 +746,7 @@ JAVASCRIPT;
                     <h3 style="margin-top: 0;">🔍 Discover Competitions</h3>
                     <p>Enter your Association ID and select a season to see all available competitions from GameDay:</p>
                     <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px;">
-                        <input type="text" id="lmc-discover-association-id" placeholder="e.g., 1064" class="regular-text" style="max-width: 200px;">
+                        <input type="text" id="lmc-discover-association-id" value="1064" placeholder="e.g., 1064" class="regular-text" style="max-width: 200px;">
                         <button type="button" id="lmc-discover-seasons-btn" class="button">Load Seasons</button>
                     </div>
                     <div id="lmc-seasons-selection" style="margin-bottom: 10px;"></div>
@@ -758,17 +757,21 @@ JAVASCRIPT;
                 <div id="lmc-competitions-list">
                     <?php foreach ($competitions as $index => $comp): ?>
                     <div class="lmc-competition-row">
-                        <h3>Competition <?php echo esc_html($index + 1); ?></h3>
+                        <h3><?php echo esc_html((isset($comp['season']) && !empty($comp['season']) ? $comp['season'] . ' - ' : '') . $comp['name']); ?></h3>
                         
                         <label>
                             <input type="radio" name="lmc_settings[current_competition]" value="<?php echo esc_attr($comp['id']); ?>" <?php checked($current_competition, $comp['id']); ?>>
                             Use as current competition
                         </label>
-                        <br><br>
                         
-                        <input type="text" name="lmc_settings[competitions][<?php echo $index; ?>][id]" class="comp-id regular-text" placeholder="Competition ID (e.g., 0-1064-0-646414-0)" value="<?php echo esc_attr($comp['id']); ?>">
-                        <input type="text" name="lmc_settings[competitions][<?php echo $index; ?>][name]" class="comp-name regular-text" placeholder="Competition Name" value="<?php echo esc_attr($comp['name']); ?>">
-                        <br>
+                        <!-- Hidden fields to preserve competition data -->
+                        <input type="hidden" name="lmc_settings[competitions][<?php echo $index; ?>][id]" value="<?php echo esc_attr($comp['id']); ?>">
+                        <input type="hidden" name="lmc_settings[competitions][<?php echo $index; ?>][name]" value="<?php echo esc_attr($comp['name']); ?>">
+                        <input type="hidden" name="lmc_settings[competitions][<?php echo $index; ?>][season]" class="comp-season" value="<?php echo esc_attr(isset($comp['season']) ? $comp['season'] : ''); ?>">
+                        
+                        <p style="color: #666; font-size: 0.9em; margin: 5px 0;">
+                            <strong>Competition ID:</strong> <code><?php echo esc_html($comp['id']); ?></code>
+                        </p>
                         
                         <br>
                         <button type="button" class="button lmc-scrape-btn">Scrape Data</button>
@@ -795,8 +798,6 @@ JAVASCRIPT;
                     <?php endforeach; ?>
                 </div>
                 
-                <button type="button" id="lmc-add-competition" class="button">Add Competition</button>
-                
                 <script type="text/template" id="competition-template">
                     <div class="lmc-competition-row">
                         <h3>New Competition</h3>
@@ -809,6 +810,7 @@ JAVASCRIPT;
                         
                         <input type="text" name="lmc_settings[competitions][INDEX][id]" class="comp-id regular-text" placeholder="Competition ID (e.g., 0-1064-0-646414-0)">
                         <input type="text" name="lmc_settings[competitions][INDEX][name]" class="comp-name regular-text" placeholder="Competition Name">
+                        <input type="hidden" name="lmc_settings[competitions][INDEX][season]" class="comp-season" value="">
                         <br>
                         
                         <br>
