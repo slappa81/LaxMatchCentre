@@ -437,24 +437,51 @@ class LMC_Data {
      * @return string|false Primary team name or false if not set
      */
     public static function get_primary_team($comp_id = null) {
+        $primary_teams = self::get_primary_teams($comp_id);
+        if (empty($primary_teams)) {
+            return false;
+        }
+
+        $first_team = reset($primary_teams);
+        return $first_team ? $first_team : false;
+    }
+
+    /**
+     * Get primary teams for a competition
+     *
+     * @param string $comp_id Competition ID (optional, uses current if not specified)
+     * @return array Array of primary team names
+     */
+    public static function get_primary_teams($comp_id = null) {
         if (!$comp_id) {
             $comp_id = self::get_current_competition();
         }
-        
+
         if (!$comp_id) {
-            return false;
+            return array();
         }
-        
+
         $settings = get_option('lmc_settings', array());
         $competitions = isset($settings['competitions']) ? $settings['competitions'] : array();
-        
+
         foreach ($competitions as $comp) {
-            if ($comp['id'] === $comp_id) {
-                return isset($comp['primary_team']) && !empty($comp['primary_team']) ? $comp['primary_team'] : false;
+            if ($comp['id'] !== $comp_id) {
+                continue;
             }
+
+            if (isset($comp['primary_teams']) && is_array($comp['primary_teams'])) {
+                $teams = array_filter(array_map('trim', $comp['primary_teams']));
+                return array_values($teams);
+            }
+
+            if (isset($comp['primary_team']) && !empty($comp['primary_team'])) {
+                return array($comp['primary_team']);
+            }
+
+            return array();
         }
-        
-        return false;
+
+        return array();
     }
     
     /**
@@ -513,6 +540,10 @@ class LMC_Data {
             return false;
         }
         
+        if (is_array($team_name)) {
+            $team_name = reset($team_name);
+        }
+
         if (!$team_name) {
             $team_name = self::get_primary_team($comp_id);
         }
@@ -584,6 +615,10 @@ class LMC_Data {
             return false;
         }
         
+        if (is_array($team_name)) {
+            $team_name = reset($team_name);
+        }
+
         if (!$team_name) {
             $team_name = self::get_primary_team($comp_id);
         }

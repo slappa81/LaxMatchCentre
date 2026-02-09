@@ -157,8 +157,25 @@ class LMC_Admin {
                 if (isset($comp['season'])) {
                     $comp_data['season'] = sanitize_text_field($comp['season']);
                 }
-                if (isset($comp['primary_team']) && !empty($comp['primary_team'])) {
-                    $comp_data['primary_team'] = sanitize_text_field($comp['primary_team']);
+                $primary_teams = array();
+                if (isset($comp['primary_teams'])) {
+                    if (is_array($comp['primary_teams'])) {
+                        foreach ($comp['primary_teams'] as $team) {
+                            $team = sanitize_text_field($team);
+                            if (!empty($team)) {
+                                $primary_teams[] = $team;
+                            }
+                        }
+                    } elseif (!empty($comp['primary_teams'])) {
+                        $primary_teams[] = sanitize_text_field($comp['primary_teams']);
+                    }
+                } elseif (isset($comp['primary_team']) && !empty($comp['primary_team'])) {
+                    $primary_teams[] = sanitize_text_field($comp['primary_team']);
+                }
+
+                if (!empty($primary_teams)) {
+                    $comp_data['primary_teams'] = array_values(array_unique($primary_teams));
+                    $comp_data['primary_team'] = $comp_data['primary_teams'][0];
                 }
                 
                 $sanitized['competitions'][] = $comp_data;
@@ -563,7 +580,7 @@ class LMC_Admin {
                                 });
                                 teamSelect.show();
                                 teamStatus.html('<span style=\"color: green;\">✓ Found ' + response.data.teams.length + ' teams</span>');
-                            } else {
+                            $.ajax({
                                 teamStatus.html('<span style=\"color: red;\">✗ ' + (response.data ? response.data.message : 'No teams found') + '</span>');
                             }
                             btn.prop('disabled', false).text('Refresh Teams');
@@ -573,11 +590,18 @@ class LMC_Admin {
                             btn.prop('disabled', false).text('Refresh Teams');
                         }
                     });
+                                        var selectedTeams = teamSelect.val() || [];
+                                        if (!Array.isArray(selectedTeams)) {
+                                            selectedTeams = selectedTeams ? [selectedTeams] : [];
+                                        }
+
                 });
                 
-                // Team logo upload
+                                        teamSelect.append('<option value="">-- Select Primary Team(s) --</option>');
                 $(document).on('click', '.lmc-upload-logo-btn', function() {
-                    var btn = $(this);
+                                            var isSelected = selectedTeams.indexOf(team) !== -1;
+                                            var selectedAttr = isSelected ? ' selected="selected"' : '';
+                                            teamSelect.append('<option value="' + team + '"' + selectedAttr + '>' + team + '</option>');
                     var teamKey = btn.data('team');
                     var teamName = btn.data('team-name');
                     var tr = btn.closest('tr');
@@ -1047,16 +1071,22 @@ JAVASCRIPT;
                         </p>
                         
                         <div style="margin: 10px 0;">
-                            <label><strong>Primary Team:</strong></label><br>
-                            <select name="lmc_settings[competitions][<?php echo $index; ?>][primary_team]" class="lmc-team-select regular-text" style="max-width: 400px;">
-                                <option value="">-- Select Primary Team --</option>
+                            <label><strong>Primary Team(s):</strong></label><br>
+                            <select name="lmc_settings[competitions][<?php echo $index; ?>][primary_teams][]" class="lmc-team-select regular-text" style="max-width: 400px;" multiple>
+                                <option value="">-- Select Primary Team(s) --</option>
                                 <?php
                                 // Load teams if data exists
                                 $teams = LMC_Data::get_teams_list($comp['id']);
                                 if ($teams && !empty($teams)) {
-                                    $current_team = isset($comp['primary_team']) ? $comp['primary_team'] : '';
+                                    $current_teams = array();
+                                    if (isset($comp['primary_teams']) && is_array($comp['primary_teams'])) {
+                                        $current_teams = $comp['primary_teams'];
+                                    } elseif (isset($comp['primary_team']) && !empty($comp['primary_team'])) {
+                                        $current_teams = array($comp['primary_team']);
+                                    }
                                     foreach ($teams as $team) {
-                                        echo '<option value="' . esc_attr($team) . '"' . selected($current_team, $team, false) . '>' . esc_html($team) . '</option>';
+                                        $selected = in_array($team, $current_teams, true) ? ' selected="selected"' : '';
+                                        echo '<option value="' . esc_attr($team) . '"' . $selected . '>' . esc_html($team) . '</option>';
                                     }
                                 }
                                 ?>
@@ -1065,7 +1095,7 @@ JAVASCRIPT;
                                 <?php echo ($teams && !empty($teams)) ? 'Refresh Teams' : 'Load Teams'; ?>
                             </button>
                             <div class="lmc-team-status" style="margin-top: 5px;"></div>
-                            <p class="description">Select the primary team to display in team-specific blocks</p>
+                            <p class="description">Select one or more primary teams to display in team-specific blocks</p>
                         </div>
                         
                         <br>
@@ -1109,13 +1139,13 @@ JAVASCRIPT;
                         <br>
                         
                         <div style="margin: 10px 0;">
-                            <label><strong>Primary Team:</strong></label><br>
-                            <select name="lmc_settings[competitions][INDEX][primary_team]" class="lmc-team-select regular-text" style="max-width: 400px; display: none;">
-                                <option value="">-- Select Primary Team --</option>
+                            <label><strong>Primary Team(s):</strong></label><br>
+                            <select name="lmc_settings[competitions][INDEX][primary_teams][]" class="lmc-team-select regular-text" style="max-width: 400px; display: none;" multiple>
+                                <option value="">-- Select Primary Team(s) --</option>
                             </select>
                             <button type="button" class="button lmc-get-teams-btn" style="margin-left: 5px;">Load Teams</button>
                             <div class="lmc-team-status" style="margin-top: 5px;"></div>
-                            <p class="description">Select the primary team to display in team-specific blocks</p>
+                            <p class="description">Select one or more primary teams to display in team-specific blocks</p>
                         </div>
                         
                         <br>

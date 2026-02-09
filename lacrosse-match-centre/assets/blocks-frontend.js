@@ -11,13 +11,13 @@
         });
     }
 
-    function initCarousel(block) {
-        const carousel = block.querySelector('.lmc-carousel');
+    function initCarouselSection(section) {
+        const carousel = section.querySelector('.lmc-carousel');
         if (!carousel) {
             return;
         }
 
-        const controls = block.querySelectorAll('.lmc-carousel-btn');
+        const controls = section.querySelectorAll('.lmc-carousel-btn');
         if (!controls.length) {
             return;
         }
@@ -34,13 +34,23 @@
         scrollCarouselToEnd(carousel);
     }
 
+    function initBlockCarousels(block) {
+        const sections = block.querySelectorAll('.lmc-carousel-section');
+        if (sections.length) {
+            sections.forEach(initCarouselSection);
+            return;
+        }
+
+        initCarouselSection(block);
+    }
+
     function initAllCarousels() {
         const blocks = document.querySelectorAll('.lmc-results-upcoming-block');
         if (!blocks.length) {
             return;
         }
 
-        blocks.forEach(initCarousel);
+        blocks.forEach(initBlockCarousels);
     }
 
     function getBlockAttributes(block) {
@@ -118,7 +128,7 @@
                 block.replaceWith(newBlock);
 
                 if (newBlock.classList.contains('lmc-results-upcoming-block')) {
-                    initCarousel(newBlock);
+                    initBlockCarousels(newBlock);
                 }
             })
             .catch(function() {

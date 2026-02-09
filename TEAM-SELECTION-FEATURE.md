@@ -1,12 +1,12 @@
 # Team Selection Feature
 
 ## Overview
-This feature extends the Lacrosse Match Centre plugin with the ability to select a primary team for each competition and display team-specific results and upcoming games in dedicated blocks.
+This feature extends the Lacrosse Match Centre plugin with the ability to select one or more primary teams for each competition and display team-specific results and upcoming games in dedicated blocks.
 
 ## What's New
 
 ### 1. Admin Interface Enhancements
-- **Primary Team Selection**: Each competition now has a "Primary Team" dropdown in the admin settings
+- **Primary Team Selection**: Each competition now has a "Primary Team(s)" selector in the admin settings
 - **Team Discovery Button**: After scraping competition data, click "Load Teams" to populate the team list
 - **Automatic Team Loading**: Teams are automatically loaded from fixture data if available
 
@@ -31,7 +31,7 @@ Displays recent results for a specific team with:
 **Block Settings:**
 - Title (customizable)
 - Competition (optional - defaults to current)
-- Team Name (optional - defaults to primary team)
+- Team Name (optional - defaults to primary team list)
 - Number of Results (1-20, default: 5)
 
 #### **Team Upcoming Games** (`lacrosse-match-centre/team-upcoming`)
@@ -45,12 +45,12 @@ Displays upcoming games for a specific team with:
 **Block Settings:**
 - Title (customizable)
 - Competition (optional - defaults to current)
-- Team Name (optional - defaults to primary team)
+- Team Name (optional - defaults to primary team list)
 - Number of Games (1-20, default: 5)
 
 ## Usage Instructions
 
-### Setting Up a Primary Team
+### Setting Up Primary Team(s)
 
 1. **Navigate to Settings**
    - Go to WordPress Admin → Settings → Match Centre
@@ -63,8 +63,8 @@ Displays upcoming games for a specific team with:
    - After scraping, click the "Load Teams" or "Refresh Teams" button
    - This fetches all unique teams from the competition fixtures
 
-4. **Select Primary Team**
-   - Choose your team from the "Primary Team" dropdown
+4. **Select Primary Team(s)**
+   - Choose one or more teams from the "Primary Team(s)" selector
    - Click "Save Settings"
 
 ### Using Team Blocks
@@ -78,15 +78,15 @@ Displays upcoming games for a specific team with:
    - Open the block settings panel (right sidebar)
    - Set a custom title (optional)
    - Select a specific competition (optional - uses current by default)
-   - Enter a team name override (optional - uses primary team by default)
+   - Enter a team name override (optional - uses primary team list by default)
    - Adjust the number of results/games to display
 
 3. **Publish**
-   - The block will automatically display data for the selected/primary team
+   - The block will automatically display data for the selected/primary team(s)
 
 ## Team Filtering Logic
 
-Both blocks filter games/results where the selected team is **either home or away**:
+Both blocks filter games/results where the selected team is **either home or away**. If no team is specified, the blocks render a section per primary team.
 - Results show the team's score first, opponent second
 - Upcoming games show team name in bold/primary styling
 - Venue information is prefixed with "vs" for home games and "@" for away games
@@ -94,14 +94,15 @@ Both blocks filter games/results where the selected team is **either home or awa
 ## Technical Details
 
 ### Data Storage
-The primary team is stored in the `lmc_settings` WordPress option under each competition:
+The primary team list is stored in the `lmc_settings` WordPress option under each competition:
 ```php
 'competitions' => [
     [
         'id' => '0-1064-0-646414-0',
         'name' => '2024 - Men's Premier League',
         'season' => '2024',
-        'primary_team' => 'Perth Lacrosse Club'
+      'primary_teams' => ['Perth Lacrosse Club', 'Perth Lacrosse Club Reserves'],
+      'primary_team' => 'Perth Lacrosse Club'
     ]
 ]
 ```
