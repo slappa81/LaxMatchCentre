@@ -134,6 +134,31 @@ class LMC_Data {
             return $datetime_string . ($time_string ? ' ' . $time_string : '');
         }
     }
+
+    /**
+     * Convert a fixture date/time into a sortable timestamp
+     *
+     * @param array $fixture Fixture data
+     * @return int|false Unix timestamp or false on failure
+     */
+    private static function get_fixture_timestamp($fixture) {
+        $date = isset($fixture['date']) ? trim((string)$fixture['date']) : '';
+        $time = isset($fixture['time']) ? trim((string)$fixture['time']) : '';
+
+        if ($date === '') {
+            return false;
+        }
+
+        $normalized_date = str_replace('/', ' ', $date);
+        $normalized_date = preg_replace('/\s+/', ' ', trim($normalized_date));
+        if (!preg_match('/\b\d{4}\b/', $normalized_date)) {
+            $normalized_date .= ' ' . current_time('Y');
+        }
+        $datetime = trim($normalized_date . ' ' . $time);
+
+        $timestamp = strtotime($datetime);
+        return ($timestamp === false) ? false : $timestamp;
+    }
     
     /**
      * Get ladder data
@@ -497,24 +522,47 @@ class LMC_Data {
             return false;
         }
         
-        // Get all results
-        $all_results = self::get_results($comp_id);
-        
-        if ($all_results === false) {
-            return false;
+        // Prefer fixtures so we include finals data, then filter completed games
+        $fixtures = self::get_fixtures($comp_id);
+        if ($fixtures === false) {
+            $fixtures = array();
         }
-        
+
+        $completed_results = array_filter($fixtures, function($fixture) {
+            return isset($fixture['completed']) && $fixture['completed'];
+        });
+
         // Filter results where team is home or away
-        $team_results = array_filter($all_results, function($result) use ($team_name) {
+        $team_results = array_filter($completed_results, function($result) use ($team_name) {
             return (isset($result['home_team']) && $result['home_team'] === $team_name) ||
                    (isset($result['away_team']) && $result['away_team'] === $team_name);
         });
-        
+
         // Re-index array
         $team_results = array_values($team_results);
-        
+
+        // Sort by date/time (descending), fall back to round
+        usort($team_results, function($a, $b) {
+            $timestamp_a = self::get_fixture_timestamp($a);
+            $timestamp_b = self::get_fixture_timestamp($b);
+
+            if ($timestamp_a !== false && $timestamp_b !== false) {
+                return $timestamp_b <=> $timestamp_a;
+            }
+            if ($timestamp_a !== false) {
+                return -1;
+            }
+            if ($timestamp_b !== false) {
+                return 1;
+            }
+
+            $round_a = isset($a['round']) ? (int)$a['round'] : 0;
+            $round_b = isset($b['round']) ? (int)$b['round'] : 0;
+            return $round_b <=> $round_a;
+        });
+
         error_log('LMC Data: Found ' . count($team_results) . ' results for team ' . $team_name);
-        
+
         return $limit ? array_slice($team_results, 0, $limit) : $team_results;
     }
     

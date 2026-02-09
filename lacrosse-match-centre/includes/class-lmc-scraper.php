@@ -21,6 +21,26 @@ class LMC_Scraper {
     private $base_url = 'https://websites.mygameday.app';
 
     /**
+     * Pool number for regular season fixtures
+     */
+    private $regular_pool = 1;
+
+    /**
+     * Pool number for finals fixtures
+     */
+    private $finals_pool = 1001;
+
+    /**
+     * Maximum rounds to check for finals
+     */
+    private $finals_max_rounds = 5;
+
+    /**
+     * Cached finals round names keyed by round number
+     */
+    private $finals_round_names = null;
+
+    /**
      * Normalize team name for consistent logo matching
      *
      * @param string $team_name Team name
@@ -39,6 +59,89 @@ class LMC_Scraper {
         $team_name = preg_replace('/\s+/', '-', trim($team_name));
 
         return $team_name;
+    }
+
+    /**
+     * Get stage label based on pool number
+     *
+     * @param int $pool_num Pool number
+     * @return string Stage label
+     */
+    private function get_stage_label($pool_num) {
+        return ((int)$pool_num === $this->finals_pool) ? 'Finals' : 'Regular Season';
+    }
+
+    /**
+     * Build a round label for display
+     *
+     * @param int $round_num Round number
+     * @param int $pool_num Pool number
+     * @return string Round label
+     */
+    private function get_round_label($round_num, $pool_num) {
+        if ((int)$pool_num === $this->finals_pool) {
+            return 'Finals Week ' . (int)$round_num;
+        }
+
+        return 'Round ' . (int)$round_num;
+    }
+
+    /**
+     * Add stage metadata to fixtures
+     *
+     * @param array $fixtures Fixtures to enrich
+     * @param int $pool_num Pool number
+     * @return array Fixtures with stage metadata
+     */
+    private function add_stage_metadata($fixtures, $pool_num) {
+        if (empty($fixtures) || !is_array($fixtures)) {
+            return $fixtures;
+        }
+
+        $stage_label = $this->get_stage_label($pool_num);
+        foreach ($fixtures as &$fixture) {
+            $fixture['pool'] = (int)$pool_num;
+            $fixture['stage'] = $stage_label;
+            if ((int)$pool_num === $this->finals_pool && !empty($fixture['match_name'])) {
+                $fixture['round_label'] = $fixture['match_name'];
+            } elseif ((int)$pool_num === $this->finals_pool && !empty($fixture['round_name'])) {
+                $fixture['round_label'] = $fixture['round_name'];
+            } elseif ((int)$pool_num === $this->finals_pool && isset($this->finals_round_names[(int)$fixture['round']])) {
+                $fixture['round_label'] = $this->finals_round_names[(int)$fixture['round']];
+            } elseif ((int)$pool_num === $this->finals_pool) {
+                $fixture['round_label'] = $this->get_default_finals_label(isset($fixture['round']) ? (int)$fixture['round'] : 0);
+            } else {
+                $fixture['round_label'] = $this->get_round_label(isset($fixture['round']) ? $fixture['round'] : 0, $pool_num);
+            }
+        }
+        unset($fixture);
+
+        return $fixtures;
+    }
+
+    /**
+     * Get a timestamp from a fixture date/time
+     *
+     * @param array $fixture Fixture data
+     * @return int|null Unix timestamp or null if unavailable
+     */
+    private function get_fixture_timestamp($fixture) {
+        $date = isset($fixture['date']) ? trim((string)$fixture['date']) : '';
+        $time = isset($fixture['time']) ? trim((string)$fixture['time']) : '';
+
+        if ($date === '') {
+            return null;
+        }
+
+        $normalized_date = str_replace('/', ' ', $date);
+        $normalized_date = preg_replace('/\s+/', ' ', trim($normalized_date));
+        if (!preg_match('/\b\d{4}\b/', $normalized_date)) {
+            $normalized_date .= ' ' . current_time('Y');
+        }
+        $datetime = trim($normalized_date . ' ' . $time);
+        $timestamp = strtotime($datetime);
+
+        return ($timestamp === false) ? null : $timestamp;
     }
     
     /**
@@ -182,6 +285,10 @@ class LMC_Scraper {
             error_log('LMC Scraper: Empty response body for fixtures');
             return false;
         }
+
+        if ((int)$pool_num === $this->finals_pool) {
+            $this->load_finals_round_names($body);
+        }
         
         error_log('LMC Scraper: Fixtures response body length: ' . strlen($body) . ' bytes');
         
@@ -192,7 +299,229 @@ class LMC_Scraper {
             error_log('LMC Scraper: Saved HTML to ' . $debug_file . ' for debugging');
         }
         
-        return $this->parse_fixtures($body, $round_num);
+        $fixtures = $this->parse_fixtures($body, $round_num);
+        $fixtures = $this->add_stage_metadata($fixtures, $pool_num);
+
+        if (!empty($fixtures)) {
+            return $fixtures;
+        }
+
+        $fallback_url = "{$this->base_url}/comp_info.cgi?client={$comp_id}&pool={$pool_num}&action=FIXTURE&round={$round_num}";
+        error_log('LMC Scraper: No fixtures found, trying fallback URL ' . $fallback_url);
+
+        $fallback_response = wp_remote_get($fallback_url, array(
+            'timeout' => 30,
+            'user-agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        ));
+
+        if (is_wp_error($fallback_response)) {
+            error_log('LMC Scraper: Fallback fetch failed for round ' . $round_num . ' - ' . $fallback_response->get_error_message());
+            return $fixtures;
+        }
+
+        $fallback_status = wp_remote_retrieve_response_code($fallback_response);
+        if ($fallback_status !== 200) {
+            error_log('LMC Scraper: Fallback fixtures round ' . $round_num . ' returned status ' . $fallback_status);
+            return $fixtures;
+        }
+
+        $fallback_body = wp_remote_retrieve_body($fallback_response);
+        if (empty($fallback_body)) {
+            error_log('LMC Scraper: Empty response body for fallback fixtures');
+            return $fixtures;
+        }
+
+        if ((int)$pool_num === $this->finals_pool) {
+            $this->load_finals_round_names($fallback_body);
+        }
+
+        $fallback_fixtures = $this->parse_fixtures($fallback_body, $round_num);
+        return $this->add_stage_metadata($fallback_fixtures, $pool_num);
+    }
+
+    /**
+     * Load finals round names from the competition API
+     *
+     * @param string $html HTML content
+     * @return void
+     */
+    private function load_finals_round_names($html) {
+        if ($this->finals_round_names !== null) {
+            return;
+        }
+
+        $this->finals_round_names = array();
+
+        if (!preg_match('/onlineCompID\s*=\s*(\d+)/', $html, $matches)) {
+            return;
+        }
+
+        $online_comp_id = $matches[1];
+        $api_key = '';
+
+        if (preg_match('/setRequestHeader\(\s*\'x-api-key\'\s*,\s*\'([^\']+)\'\s*\)/', $html, $key_matches)) {
+            $api_key = $key_matches[1];
+        }
+
+        $headers = array();
+        if ($api_key !== '') {
+            $headers['x-api-key'] = $api_key;
+        }
+
+        $url = "https://awsapi.foxsportspulse.com/v2/compdata/competitions/{$online_comp_id}";
+        $response = wp_remote_get($url, array(
+            'timeout' => 30,
+            'headers' => $headers,
+            'user-agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        ));
+
+        if (is_wp_error($response)) {
+            error_log('LMC Scraper: Finals round names fetch failed - ' . $response->get_error_message());
+            return;
+        }
+
+        $status_code = wp_remote_retrieve_response_code($response);
+        if ($status_code !== 200) {
+            error_log('LMC Scraper: Finals round names request returned status ' . $status_code);
+            return;
+        }
+
+        $body = wp_remote_retrieve_body($response);
+        if (empty($body)) {
+            return;
+        }
+
+        $data = json_decode($body, true);
+        if (!$data || !isset($data['resultList'][0]['round_list'])) {
+            return;
+        }
+
+        foreach ($data['resultList'][0]['round_list'] as $round) {
+            if (!isset($round['number'])) {
+                continue;
+            }
+
+            if (isset($round['is_final']) && !$round['is_final']) {
+                continue;
+            }
+
+            $label = $this->get_round_display_name($round);
+            if ($label === '') {
+                continue;
+            }
+
+            $this->finals_round_names[(int)$round['number']] = $label;
+        }
+    }
+
+    /**
+     * Resolve a display label for a round
+     *
+     * @param array $round Round data
+     * @return string
+     */
+    private function get_round_display_name($round) {
+        $keys = array(
+            'abbr',
+            'short_name',
+            'shortName',
+            'name',
+            'round_name',
+            'roundName',
+            'label',
+            'title'
+        );
+
+        foreach ($keys as $key) {
+            if (!empty($round[$key])) {
+                $label = trim((string)$round[$key]);
+                return $this->normalize_finals_label($label);
+            }
+        }
+
+        if (!empty($round['notes'])) {
+            $label = trim((string)$round['notes']);
+            return $this->normalize_finals_label($label);
+        }
+
+        return '';
+    }
+
+    /**
+     * Normalize finals labels to short forms where possible
+     *
+     * @param string $label Label to normalize
+     * @return string
+     */
+    private function normalize_finals_label($label) {
+        $clean = trim($label);
+        if ($clean === '') {
+            return '';
+        }
+
+        $lower = strtolower($clean);
+        if (strpos($lower, 'semi') !== false) {
+            return 'Semi Final';
+        }
+        if (strpos($lower, 'prelim') !== false) {
+            return 'Preliminary Final';
+        }
+        if (strpos($lower, 'grand') !== false) {
+            return 'Grand Final';
+        }
+        if (strpos($lower, 'elimin') !== false) {
+            return 'Elimination Final';
+        }
+        if (strpos($lower, 'qualif') !== false) {
+            return 'Qualifying Final';
+        }
+
+        if (strlen($clean) <= 4) {
+            return strtoupper($clean);
+        }
+
+        return $clean;
+    }
+
+    /**
+     * Default finals label mapping when round names are not provided
+     *
+     * @param int $round_num Round number
+     * @return string
+     */
+    private function get_default_finals_label($round_num) {
+        $mapping = array(
+            1 => 'Semi Final',
+            2 => 'Preliminary Final',
+            3 => 'Grand Final'
+        );
+
+        if (isset($mapping[$round_num])) {
+            return $mapping[$round_num];
+        }
+
+        return 'Finals Week ' . (int)$round_num;
+    }
+
+    /**
+     * Validate fixture data to avoid placeholders without teams
+     *
+     * @param array $fixture Fixture data
+     * @return bool
+     */
+    private function is_valid_fixture($fixture) {
+        $home_team = isset($fixture['home_team']) ? trim((string)$fixture['home_team']) : '';
+        $away_team = isset($fixture['away_team']) ? trim((string)$fixture['away_team']) : '';
+
+        if ($home_team === '' && $away_team === '') {
+            return false;
+        }
+
+        if (strtolower($home_team) === 'undecided' && $away_team === '') {
+            return false;
+        }
+
+        return true;
     }
     
     /**
@@ -233,7 +562,9 @@ class LMC_Scraper {
                     'away_score' => null,
                     'completed' => false,
                     'home_logo' => isset($match['HomeTeamLogo']) ? $match['HomeTeamLogo'] : (isset($match['HomeClubLogo']) ? $match['HomeClubLogo'] : ''),
-                    'away_logo' => isset($match['AwayTeamLogo']) ? $match['AwayTeamLogo'] : (isset($match['AwayClubLogo']) ? $match['AwayClubLogo'] : '')
+                    'away_logo' => isset($match['AwayTeamLogo']) ? $match['AwayTeamLogo'] : (isset($match['AwayClubLogo']) ? $match['AwayClubLogo'] : ''),
+                    'match_name' => isset($match['MatchName']) ? trim((string)$match['MatchName']) : '',
+                    'round_name' => isset($match['RoundName']) ? trim((string)$match['RoundName']) : ''
                 );
                 
                 // Check if game is completed (has scores)
@@ -249,7 +580,9 @@ class LMC_Scraper {
                     $fixture['completed'] = (bool)$match['PastGame'];
                 }
                 
-                $fixtures[] = $fixture;
+                if ($this->is_valid_fixture($fixture)) {
+                    $fixtures[] = $fixture;
+                }
             }
             
             error_log('LMC Scraper: Successfully parsed ' . count($fixtures) . ' fixtures from JavaScript data');
@@ -427,59 +760,37 @@ class LMC_Scraper {
      */
     public function fetch_all_fixtures($comp_id, $comp_name, $current_round, $max_rounds = 18) {
         error_log('LMC Scraper: Auto-detecting rounds by fetching until empty (max: ' . $max_rounds . ')');
-        
+
         $all_fixtures = array();
-        $empty_rounds = 0;
-        $last_round_with_data = 0;
-        $seen_fixture_keys = array(); // Track unique fixtures to avoid duplicates
-        
-        // Fetch rounds until we hit 2 consecutive empty rounds
-        for ($round = 1; $round <= $max_rounds; $round++) {
-            $fixtures = $this->get_round_fixtures($comp_id, $round);
-            
-            if ($fixtures && !empty($fixtures)) {
-                // Add fixtures and track which ones we've seen
-                $new_fixtures_count = 0;
-                foreach ($fixtures as $fixture) {
-                    // Create a unique key for this fixture
-                    $key = $fixture['round'] . '_' . $fixture['home_team'] . '_' . $fixture['away_team'] . '_' . $fixture['date'];
-                    
-                    // Only add if we haven't seen this exact fixture before
-                    if (!isset($seen_fixture_keys[$key])) {
-                        $all_fixtures[] = $fixture;
-                        $seen_fixture_keys[$key] = true;
-                        $new_fixtures_count++;
-                    }
-                }
-                
-                if ($new_fixtures_count > 0) {
-                    $last_round_with_data = $round;
-                    $empty_rounds = 0;
-                    error_log('LMC Scraper: Round ' . $round . ' returned ' . $new_fixtures_count . ' new fixtures');
-                } else {
-                    $empty_rounds++;
-                    error_log('LMC Scraper: Round ' . $round . ' returned only duplicate fixtures (empty)');
-                }
-            } else {
-                $empty_rounds++;
-                error_log('LMC Scraper: Round ' . $round . ' is empty');
-            }
-            
-            // If we've found data and now hit 2 empty rounds, we're done
-            if ($last_round_with_data > 0 && $empty_rounds >= 2) {
-                error_log('LMC Scraper: Stopping at round ' . $round . ', last data in round ' . $last_round_with_data);
-                break;
-            }
-            
-            // Small delay to avoid overwhelming the server
-            usleep(300000); // 0.3 seconds
+
+        $regular_fixtures = $this->fetch_fixtures_for_pool($comp_id, $this->regular_pool, $max_rounds);
+        if (!empty($regular_fixtures)) {
+            $all_fixtures = array_merge($all_fixtures, $regular_fixtures);
         }
-        
+
+        $finals_fixtures = $this->fetch_fixtures_for_pool($comp_id, $this->finals_pool, $this->finals_max_rounds);
+        if (!empty($finals_fixtures)) {
+            $all_fixtures = array_merge($all_fixtures, $finals_fixtures);
+        }
+
         if (empty($all_fixtures)) {
-            error_log('LMC Scraper: No fixtures found in any round');
+            error_log('LMC Scraper: No fixtures found in any pool');
             return false;
         }
-        
+
+        $deduped_fixtures = array();
+        $seen_fixture_keys = array();
+        foreach ($all_fixtures as $fixture) {
+            $pool = isset($fixture['pool']) ? $fixture['pool'] : 0;
+            $key = $pool . '_' . $fixture['round'] . '_' . $fixture['home_team'] . '_' . $fixture['away_team'] . '_' . $fixture['date'];
+            if (!isset($seen_fixture_keys[$key])) {
+                $seen_fixture_keys[$key] = true;
+                $deduped_fixtures[] = $fixture;
+            }
+        }
+
+        $all_fixtures = $deduped_fixtures;
+
         error_log('LMC Scraper: Total fixtures found: ' . count($all_fixtures));
         
         // Save all fixtures
@@ -503,8 +814,79 @@ class LMC_Scraper {
         // Save results
         $results_file = LMC_DATA_DIR . "results-{$comp_id}.json";
         file_put_contents($results_file, json_encode($results, JSON_PRETTY_PRINT));
+
+        if (class_exists('LMC_Data')) {
+            LMC_Data::clear_cache($comp_id);
+        }
         
         return true;
+    }
+
+    /**
+     * Fetch fixtures for a specific pool
+     *
+     * @param string $comp_id Competition ID
+     * @param int $pool_num Pool number
+     * @param int $max_rounds Maximum rounds to check
+     * @return array Fixtures for the pool
+     */
+    private function fetch_fixtures_for_pool($comp_id, $pool_num, $max_rounds) {
+        $stage_label = $this->get_stage_label($pool_num);
+        error_log('LMC Scraper: Fetching ' . $stage_label . ' fixtures (pool ' . $pool_num . ')');
+
+        $all_fixtures = array();
+        $empty_rounds = 0;
+        $last_round_with_data = 0;
+        $seen_fixture_keys = array();
+
+        if ((int)$pool_num === $this->finals_pool) {
+            $finals_fixtures = $this->get_round_fixtures($comp_id, 0, $pool_num);
+            if (!empty($finals_fixtures)) {
+                error_log('LMC Scraper: Pool ' . $pool_num . ' returned fixtures with round=0');
+                return $finals_fixtures;
+            }
+        }
+
+        for ($round = 1; $round <= $max_rounds; $round++) {
+            $fixtures = $this->get_round_fixtures($comp_id, $round, $pool_num);
+
+            if ($fixtures && !empty($fixtures)) {
+                $new_fixtures_count = 0;
+                foreach ($fixtures as $fixture) {
+                    $key = $pool_num . '_' . $fixture['round'] . '_' . $fixture['home_team'] . '_' . $fixture['away_team'] . '_' . $fixture['date'];
+                    if (!isset($seen_fixture_keys[$key])) {
+                        $all_fixtures[] = $fixture;
+                        $seen_fixture_keys[$key] = true;
+                        $new_fixtures_count++;
+                    }
+                }
+
+                if ($new_fixtures_count > 0) {
+                    $last_round_with_data = $round;
+                    $empty_rounds = 0;
+                    error_log('LMC Scraper: Pool ' . $pool_num . ' round ' . $round . ' returned ' . $new_fixtures_count . ' new fixtures');
+                } else {
+                    $empty_rounds++;
+                    error_log('LMC Scraper: Pool ' . $pool_num . ' round ' . $round . ' returned only duplicate fixtures (empty)');
+                }
+            } else {
+                $empty_rounds++;
+                error_log('LMC Scraper: Pool ' . $pool_num . ' round ' . $round . ' is empty');
+            }
+
+            if ($last_round_with_data > 0 && $empty_rounds >= 2) {
+                error_log('LMC Scraper: Stopping pool ' . $pool_num . ' at round ' . $round . ', last data in round ' . $last_round_with_data);
+                break;
+            }
+
+            usleep(300000);
+        }
+
+        if (empty($all_fixtures)) {
+            error_log('LMC Scraper: No fixtures found for pool ' . $pool_num);
+        }
+
+        return $all_fixtures;
     }
     
     /**
@@ -529,8 +911,21 @@ class LMC_Scraper {
             }
         }
         
-        // Sort by round
+        // Sort by date/time if possible, otherwise by round
         usort($upcoming, function($a, $b) {
+            $timestamp_a = $this->get_fixture_timestamp($a);
+            $timestamp_b = $this->get_fixture_timestamp($b);
+
+            if ($timestamp_a !== null && $timestamp_b !== null) {
+                return $timestamp_a <=> $timestamp_b;
+            }
+            if ($timestamp_a !== null) {
+                return -1;
+            }
+            if ($timestamp_b !== null) {
+                return 1;
+            }
+
             return $a['round'] - $b['round'];
         });
         
@@ -552,8 +947,21 @@ class LMC_Scraper {
             }
         }
         
-        // Sort by round (descending)
+        // Sort by date/time (descending), fall back to round
         usort($results, function($a, $b) {
+            $timestamp_a = $this->get_fixture_timestamp($a);
+            $timestamp_b = $this->get_fixture_timestamp($b);
+
+            if ($timestamp_a !== null && $timestamp_b !== null) {
+                return $timestamp_b <=> $timestamp_a;
+            }
+            if ($timestamp_a !== null) {
+                return -1;
+            }
+            if ($timestamp_b !== null) {
+                return 1;
+            }
+
             return $b['round'] - $a['round'];
         });
         
@@ -863,6 +1271,10 @@ class LMC_Scraper {
             }
         } else {
             error_log('LMC Scraper: Failed to fetch or parse ladder');
+        }
+
+        if (class_exists('LMC_Data')) {
+            LMC_Data::clear_cache($comp_id);
         }
         
         // Download and cache team logos if scraping was successful

@@ -1,0 +1,6 @@
+# Protect data directory
+Order deny,allow
+Deny from all
+<Files ~ "\.(json)$">
+    Allow from all
+</Files>

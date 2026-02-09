@@ -354,8 +354,9 @@ class LMC_Blocks {
             echo '<div class="lmc-upcoming">';
             
             foreach ($games as $game) {
+                $round_label = !empty($game['round_label']) ? $game['round_label'] : 'Round ' . $game['round'];
                 echo '<div class="lmc-game">';
-                echo '<div class="lmc-game-round">Round ' . esc_html($game['round']) . '</div>';
+                echo '<div class="lmc-game-round">' . esc_html($round_label) . '</div>';
                 // Use formatted datetime if available, otherwise fall back to raw date/time
                 if (!empty($game['formatted_datetime'])) {
                     echo '<div class="lmc-game-datetime">' . esc_html($game['formatted_datetime']) . '</div>';
@@ -424,8 +425,9 @@ class LMC_Blocks {
             echo '<div class="lmc-results">';
             
             foreach ($results as $result) {
+                $round_label = !empty($result['round_label']) ? $result['round_label'] : 'Round ' . $result['round'];
                 echo '<div class="lmc-result">';
-                echo '<div class="lmc-result-round">Round ' . esc_html($result['round']) . '</div>';
+                echo '<div class="lmc-result-round">' . esc_html($round_label) . '</div>';
                 // Use formatted datetime if available, otherwise fall back to raw date
                 if (!empty($result['formatted_datetime'])) {
                     echo '<div class="lmc-result-datetime">' . esc_html($result['formatted_datetime']) . '</div>';
@@ -507,9 +509,10 @@ class LMC_Blocks {
                 $opponent_score = $is_home ? $result['away_score'] : $result['home_score'];
                 $opponent_name = $is_home ? $result['away_team'] : $result['home_team'];
                 $venue_prefix = $is_home ? 'vs' : '@';
+                $round_label = !empty($result['round_label']) ? $result['round_label'] : 'Round ' . $result['round'];
                 
                 echo '<div class="lmc-result lmc-team-result">';
-                echo '<div class="lmc-result-round">Round ' . esc_html($result['round']) . '</div>';
+                echo '<div class="lmc-result-round">' . esc_html($round_label) . '</div>';
                 
                 // Use formatted datetime if available
                 if (!empty($result['formatted_datetime'])) {
@@ -599,9 +602,10 @@ class LMC_Blocks {
                 $is_home = ($game['home_team'] === $team_name);
                 $opponent_name = $is_home ? $game['away_team'] : $game['home_team'];
                 $venue_prefix = $is_home ? 'vs' : '@';
+                $round_label = !empty($game['round_label']) ? $game['round_label'] : 'Round ' . $game['round'];
                 
                 echo '<div class="lmc-game lmc-team-game">';
-                echo '<div class="lmc-game-round">Round ' . esc_html($game['round']) . '</div>';
+                echo '<div class="lmc-game-round">' . esc_html($round_label) . '</div>';
                 
                 // Use formatted datetime if available
                 if (!empty($game['formatted_datetime'])) {

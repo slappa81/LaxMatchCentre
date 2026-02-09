@@ -53,10 +53,15 @@ Returns the competition ladder/standings for a specific round.
 
 ### Fixtures/Results
 ```
-https://websites.mygameday.app/comp_display_round.cgi?c={comp_id}&round={round_num}
+https://websites.mygameday.app/comp_info.cgi?c={comp_id}&pool={pool_num}&round={round_num}&a=FIXTURE
 ```
 
-Returns all fixtures and results for a specific round.
+Returns fixtures and results for a specific round in the selected pool.
+
+The plugin also supports the GameDay alternate URL format used by some competitions:
+```
+https://websites.mygameday.app/comp_info.cgi?client={comp_id}&pool={pool_num}&action=FIXTURE&round={round_num}
+```
 
 ## Data Structure
 
@@ -77,23 +82,49 @@ The plugin scrapes and stores the following data:
 - Date and time
 - Venue
 - Scores (if completed)
+- Finals metadata:
+  - `pool` is `1001` for finals, `1` for regular season
+  - `stage` is `Finals` or `Regular Season`
+  - `round_label` is the display label (e.g., `Semi Final`, `Preliminary Final`, `Grand Final`)
 
 ### Upcoming Games (`upcoming-{comp_id}.json`)
 - Filtered list of future games
 - Sorted by date
+- Includes finals games when they are future-dated
 
 ### Results (`results-{comp_id}.json`)
 - Filtered list of completed games
 - Includes final scores
 - Sorted by date (most recent first)
+- Includes finals when they are completed
 
 ## Scraping Process
 
 1. **Ladder**: Fetches current standings for the specified round
 2. **Fixtures**: Iterates through all rounds (1 to max_rounds) to collect all fixtures
+  - Regular season uses `pool=1`
+  - Finals use `pool=1001` and can include up to 5 weeks by default
+  - `round=0` may be used by the finals pool to return all rounds
 3. **Separation**: Automatically separates upcoming games from completed results
 4. **Storage**: Saves data as JSON files in the `/data/` directory
 5. **Caching**: Uses WordPress transients to cache data and reduce server load
+
+## Finals Labels
+
+Finals fixtures are labeled using the first available source, in this order:
+
+1. `MatchName` from the GameDay fixtures payload (if provided)
+2. Finals round names from the competition API (`awsapi.foxsportspulse.com/v2/compdata/competitions/{onlineCompID}`)
+3. A default finals mapping:
+  - Round 1: Semi Final
+  - Round 2: Preliminary Final
+  - Round 3: Grand Final
+
+If none of the above are available, the label falls back to `Finals Week X`.
+
+## Fixture Filtering
+
+Fixtures that contain no teams (for example, placeholder rows like `Undecided` vs empty) are filtered out during scraping so they do not appear in results or upcoming games.
 
 ## Rate Limiting
 

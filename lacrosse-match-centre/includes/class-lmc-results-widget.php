@@ -53,8 +53,9 @@ class LMC_Results_Widget extends WP_Widget {
             echo '<div class="lmc-results">';
             
             foreach ($results as $result) {
+                $round_label = !empty($result['round_label']) ? $result['round_label'] : 'Round ' . $result['round'];
                 echo '<div class="lmc-result">';
-                echo '<div class="lmc-result-round">Round ' . esc_html($result['round']) . '</div>';
+                echo '<div class="lmc-result-round">' . esc_html($round_label) . '</div>';
                 // Use formatted datetime if available, otherwise fall back to raw date
                 if (!empty($result['formatted_datetime'])) {
                     echo '<div class="lmc-result-datetime">' . esc_html($result['formatted_datetime']) . '</div>';
