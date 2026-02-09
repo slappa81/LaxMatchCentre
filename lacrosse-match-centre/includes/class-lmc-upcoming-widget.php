@@ -78,7 +78,7 @@ class LMC_Upcoming_Widget extends WP_Widget {
             
             echo '</div>';
         } else {
-            echo '<p class="lmc-no-data">No upcoming games available. Please scrape data from the admin panel.</p>';
+            echo '<p class="lmc-no-data">No upcoming games available.</p>';
         }
         
         echo $args['after_widget'];

@@ -12,7 +12,7 @@
     
     const { registerBlockType } = wp.blocks;
     const { InspectorControls } = wp.blockEditor || wp.editor || {};
-    const { PanelBody, TextControl, SelectControl, RangeControl, Placeholder } = wp.components;
+    const { PanelBody, TextControl, SelectControl, RangeControl, Placeholder, ToggleControl } = wp.components;
     const { __ } = wp.i18n;
     const { createElement: el } = wp.element;
     
@@ -106,6 +106,66 @@
     });
 
     console.log('Lacrosse Match Centre: Ladder block registered');
+
+    // Competition Selector Block
+    registerBlockType('lacrosse-match-centre/competition-selector', {
+        title: __('Competition Selector', 'lacrosse-match-centre'),
+        icon: 'filter',
+        category: 'lacrosse-match-centre',
+        attributes: {
+            title: {
+                type: 'string',
+                default: 'Competition'
+            },
+            showLabel: {
+                type: 'boolean',
+                default: true
+            }
+        },
+
+        edit: function(props) {
+            const { attributes, setAttributes } = props;
+
+            return el('div', { className: 'lmc-block-editor' },
+                el(InspectorControls, null,
+                    el(PanelBody, {
+                        title: __('Block Settings', 'lacrosse-match-centre'),
+                        initialOpen: true
+                    },
+                        el(TextControl, {
+                            label: __('Label', 'lacrosse-match-centre'),
+                            value: attributes.title,
+                            onChange: function(value) {
+                                setAttributes({ title: value });
+                            }
+                        }),
+                        el(ToggleControl, {
+                            label: __('Show Label', 'lacrosse-match-centre'),
+                            checked: attributes.showLabel,
+                            onChange: function(value) {
+                                setAttributes({ showLabel: value });
+                            }
+                        })
+                    )
+                ),
+                el(Placeholder, {
+                    icon: 'filter',
+                    label: __('Competition Selector', 'lacrosse-match-centre')
+                },
+                    el('div', { style: { textAlign: 'center' } },
+                        el('strong', null, attributes.showLabel ? (attributes.title || 'Competition') : __('Competition Selector', 'lacrosse-match-centre')),
+                        el('p', null, __('Visitors can switch competitions on the front-end', 'lacrosse-match-centre'))
+                    )
+                )
+            );
+        },
+
+        save: function() {
+            return null;
+        }
+    });
+
+    console.log('Lacrosse Match Centre: Competition selector block registered');
 
     // Upcoming Games Block
     registerBlockType('lacrosse-match-centre/upcoming', {
@@ -437,6 +497,10 @@
             displayMode: {
                 type: 'string',
                 default: 'text'
+            },
+            allowCompSync: {
+                type: 'boolean',
+                default: true
             }
         },
         
@@ -495,6 +559,13 @@
                             onChange: function(value) {
                                 setAttributes({ displayMode: value });
                             }
+                        }),
+                        el(ToggleControl, {
+                            label: __('Sync with competition selector', 'lacrosse-match-centre'),
+                            checked: attributes.allowCompSync,
+                            onChange: function(value) {
+                                setAttributes({ allowCompSync: value });
+                            }
                         })
                     )
                 ),
@@ -546,6 +617,10 @@
             displayMode: {
                 type: 'string',
                 default: 'text'
+            },
+            allowCompSync: {
+                type: 'boolean',
+                default: true
             }
         },
         
@@ -603,6 +678,13 @@
                             ],
                             onChange: function(value) {
                                 setAttributes({ displayMode: value });
+                            }
+                        }),
+                        el(ToggleControl, {
+                            label: __('Sync with competition selector', 'lacrosse-match-centre'),
+                            checked: attributes.allowCompSync,
+                            onChange: function(value) {
+                                setAttributes({ allowCompSync: value });
                             }
                         })
                     )

@@ -21,6 +21,8 @@ class LMC_Blocks {
     public function __construct() {
         add_action('init', array($this, 'register_block_assets'), 5);
         add_action('init', array($this, 'register_blocks'), 10);
+        add_action('wp_ajax_lmc_render_block', array($this, 'handle_render_block_ajax'));
+        add_action('wp_ajax_nopriv_lmc_render_block', array($this, 'handle_render_block_ajax'));
     }
     
     /**
@@ -85,6 +87,11 @@ class LMC_Blocks {
             filemtime(plugin_dir_path(dirname(__FILE__)) . 'assets/blocks-frontend.js'),
             true
         );
+
+        wp_localize_script('lacrosse-match-centre-blocks-frontend', 'lmcFrontendData', array(
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('lmc_frontend_nonce')
+        ));
         
         error_log('LMC Blocks: Assets registered');
     }
@@ -125,6 +132,28 @@ class LMC_Blocks {
         ));
         
         error_log('LMC Blocks: Ladder block registered');
+
+        // Register competition selector block
+        register_block_type('lacrosse-match-centre/competition-selector', array(
+            'api_version' => 2,
+            'editor_script' => 'lacrosse-match-centre-blocks',
+            'editor_style' => 'lacrosse-match-centre-blocks-editor',
+            'style' => 'lacrosse-match-centre-blocks',
+            'script' => 'lacrosse-match-centre-blocks-frontend',
+            'attributes' => array(
+                'title' => array(
+                    'type' => 'string',
+                    'default' => 'Competition'
+                ),
+                'showLabel' => array(
+                    'type' => 'boolean',
+                    'default' => true
+                )
+            ),
+            'render_callback' => array($this, 'render_competition_selector_block')
+        ));
+
+        error_log('LMC Blocks: Competition selector block registered');
         
         // Register upcoming games block
         register_block_type('lacrosse-match-centre/upcoming', array(
@@ -249,6 +278,10 @@ class LMC_Blocks {
                     'type' => 'string',
                     'default' => 'text',
                     'enum' => array('text', 'image', 'both')
+                ),
+                'allowCompSync' => array(
+                    'type' => 'boolean',
+                    'default' => true
                 )
             ),
             'render_callback' => array($this, 'render_team_results_block')
@@ -283,6 +316,10 @@ class LMC_Blocks {
                     'type' => 'string',
                     'default' => 'text',
                     'enum' => array('text', 'image', 'both')
+                ),
+                'allowCompSync' => array(
+                    'type' => 'boolean',
+                    'default' => true
                 )
             ),
             'render_callback' => array($this, 'render_team_upcoming_block')
@@ -299,13 +336,19 @@ class LMC_Blocks {
         $title = isset($attributes['title']) ? $attributes['title'] : 'Competition Ladder';
         $comp_id = isset($attributes['compId']) && !empty($attributes['compId']) ? $attributes['compId'] : null;
         $display_mode = isset($attributes['displayMode']) ? $attributes['displayMode'] : 'text';
+
+        $block_attributes = array(
+            'title' => $title,
+            'compId' => $comp_id ? $comp_id : '',
+            'displayMode' => $display_mode
+        );
         
         error_log('LMC Blocks: Rendering ladder block with compId: ' . ($comp_id ? $comp_id : 'NULL (will use current)'));
         error_log('LMC Blocks: Block attributes: ' . print_r($attributes, true));
         
         ob_start();
         
-        echo '<div class="wp-block-lacrosse-match-centre-ladder lmc-ladder-block">';
+        echo '<div class="wp-block-lacrosse-match-centre-ladder lmc-ladder-block"' . $this->get_block_data_attributes('ladder', $block_attributes) . '>';
         
         if (!empty($title)) {
             echo '<h2 class="lmc-block-title">' . esc_html($title) . '</h2>';
@@ -371,12 +414,19 @@ class LMC_Blocks {
         $comp_id = isset($attributes['compId']) && !empty($attributes['compId']) ? $attributes['compId'] : null;
         $limit = isset($attributes['limit']) ? absint($attributes['limit']) : 5;
         $display_mode = isset($attributes['displayMode']) ? $attributes['displayMode'] : 'text';
+
+        $block_attributes = array(
+            'title' => $title,
+            'compId' => $comp_id ? $comp_id : '',
+            'limit' => $limit,
+            'displayMode' => $display_mode
+        );
         
         error_log('LMC Blocks: Rendering upcoming block with compId: ' . ($comp_id ? $comp_id : 'NULL (will use current)'));
         
         ob_start();
         
-        echo '<div class="wp-block-lacrosse-match-centre-upcoming lmc-upcoming-block">';
+        echo '<div class="wp-block-lacrosse-match-centre-upcoming lmc-upcoming-block"' . $this->get_block_data_attributes('upcoming', $block_attributes) . '>';
         
         if (!empty($title)) {
             echo '<h2 class="lmc-block-title">' . esc_html($title) . '</h2>';
@@ -426,7 +476,7 @@ class LMC_Blocks {
             
             echo '</div>';
         } else {
-            echo '<p class="lmc-no-data">No upcoming games available. Please scrape data from the admin panel.</p>';
+            echo '<p class="lmc-no-data">No upcoming games available.</p>';
         }
         
         echo '</div>';
@@ -442,12 +492,19 @@ class LMC_Blocks {
         $comp_id = isset($attributes['compId']) && !empty($attributes['compId']) ? $attributes['compId'] : null;
         $limit = isset($attributes['limit']) ? absint($attributes['limit']) : 5;
         $display_mode = isset($attributes['displayMode']) ? $attributes['displayMode'] : 'text';
+
+        $block_attributes = array(
+            'title' => $title,
+            'compId' => $comp_id ? $comp_id : '',
+            'limit' => $limit,
+            'displayMode' => $display_mode
+        );
         
         error_log('LMC Blocks: Rendering results block with compId: ' . ($comp_id ? $comp_id : 'NULL (will use current)'));
         
         ob_start();
         
-        echo '<div class="wp-block-lacrosse-match-centre-results lmc-results-block">';
+        echo '<div class="wp-block-lacrosse-match-centre-results lmc-results-block"' . $this->get_block_data_attributes('results', $block_attributes) . '>';
         
         if (!empty($title)) {
             echo '<h2 class="lmc-block-title">' . esc_html($title) . '</h2>';
@@ -518,13 +575,22 @@ class LMC_Blocks {
         $cards_per_view = isset($attributes['cardsPerView']) ? absint($attributes['cardsPerView']) : 4;
         $display_mode = isset($attributes['displayMode']) ? $attributes['displayMode'] : 'text';
 
+        $block_attributes = array(
+            'title' => $title,
+            'compId' => $comp_id ? $comp_id : '',
+            'resultsLimit' => $results_limit,
+            'upcomingLimit' => $upcoming_limit,
+            'cardsPerView' => $cards_per_view,
+            'displayMode' => $display_mode
+        );
+
         error_log('LMC Blocks: Rendering results/upcoming block with compId: ' . ($comp_id ? $comp_id : 'NULL (will use current)'));
 
         ob_start();
 
         $carousel_style = ' style="--lmc-cards-per-view: ' . esc_attr($cards_per_view) . ';"';
 
-        echo '<div class="wp-block-lacrosse-match-centre-results-upcoming lmc-results-upcoming-block">';
+        echo '<div class="wp-block-lacrosse-match-centre-results-upcoming lmc-results-upcoming-block"' . $this->get_block_data_attributes('results-upcoming', $block_attributes) . '>';
 
         if (!empty($title)) {
             echo '<h2 class="lmc-block-title">' . esc_html($title) . '</h2>';
@@ -686,12 +752,22 @@ class LMC_Blocks {
         $team_name = isset($attributes['teamName']) && !empty($attributes['teamName']) ? $attributes['teamName'] : null;
         $limit = isset($attributes['limit']) ? absint($attributes['limit']) : 5;
         $display_mode = isset($attributes['displayMode']) ? $attributes['displayMode'] : 'text';
+        $allow_comp_sync = isset($attributes['allowCompSync']) ? (bool)$attributes['allowCompSync'] : true;
+
+        $block_attributes = array(
+            'title' => $title,
+            'compId' => $comp_id ? $comp_id : '',
+            'teamName' => $team_name ? $team_name : '',
+            'limit' => $limit,
+            'displayMode' => $display_mode,
+            'allowCompSync' => $allow_comp_sync
+        );
         
         error_log('LMC Blocks: Rendering team results block with compId: ' . ($comp_id ? $comp_id : 'NULL') . ', team: ' . ($team_name ? $team_name : 'NULL'));
         
         ob_start();
         
-        echo '<div class="wp-block-lacrosse-match-centre-team-results lmc-team-results-block">';
+        echo '<div class="wp-block-lacrosse-match-centre-team-results lmc-team-results-block"' . $this->get_block_data_attributes('team-results', $block_attributes) . '>';
         
         if (!empty($title)) {
             echo '<h2 class="lmc-block-title">' . esc_html($title) . '</h2>';
@@ -781,12 +857,22 @@ class LMC_Blocks {
         $team_name = isset($attributes['teamName']) && !empty($attributes['teamName']) ? $attributes['teamName'] : null;
         $limit = isset($attributes['limit']) ? absint($attributes['limit']) : 5;
         $display_mode = isset($attributes['displayMode']) ? $attributes['displayMode'] : 'text';
+        $allow_comp_sync = isset($attributes['allowCompSync']) ? (bool)$attributes['allowCompSync'] : true;
+
+        $block_attributes = array(
+            'title' => $title,
+            'compId' => $comp_id ? $comp_id : '',
+            'teamName' => $team_name ? $team_name : '',
+            'limit' => $limit,
+            'displayMode' => $display_mode,
+            'allowCompSync' => $allow_comp_sync
+        );
         
         error_log('LMC Blocks: Rendering team upcoming block with compId: ' . ($comp_id ? $comp_id : 'NULL') . ', team: ' . ($team_name ? $team_name : 'NULL'));
         
         ob_start();
         
-        echo '<div class="wp-block-lacrosse-match-centre-team-upcoming lmc-team-upcoming-block">';
+        echo '<div class="wp-block-lacrosse-match-centre-team-upcoming lmc-team-upcoming-block"' . $this->get_block_data_attributes('team-upcoming', $block_attributes) . '>';
         
         if (!empty($title)) {
             echo '<h2 class="lmc-block-title">' . esc_html($title) . '</h2>';
@@ -856,11 +942,10 @@ class LMC_Blocks {
         } else {
             $message = 'No upcoming games available for ';
             if ($team_name) {
-                $message .= esc_html($team_name) . '. ';
+                $message .= esc_html($team_name) . '.';
             } else {
-                $message .= 'the selected team. Please set a primary team in the admin panel or ';
+                $message .= 'the selected team.';
             }
-            $message .= 'Please scrape data from the admin panel.';
             echo '<p class="lmc-no-data">' . $message . '</p>';
         }
         
@@ -929,6 +1014,106 @@ class LMC_Blocks {
         $output .= '</span>';
         
         return $output;
+    }
+
+    /**
+     * Render competition selector block
+     */
+    public function render_competition_selector_block($attributes) {
+        $title = isset($attributes['title']) ? $attributes['title'] : 'Competition';
+        $show_label = isset($attributes['showLabel']) ? (bool)$attributes['showLabel'] : true;
+
+        $competitions = LMC_Data::get_all_competitions();
+        $settings = get_option('lmc_settings', array());
+        $current_comp_id = isset($settings['current_competition']) ? $settings['current_competition'] : '';
+
+        $select_id = 'lmc-competition-select-' . uniqid();
+
+        ob_start();
+
+        echo '<div class="wp-block-lacrosse-match-centre-competition-selector lmc-competition-selector-block">';
+        echo '<div class="lmc-competition-selector">';
+
+        if ($show_label) {
+            echo '<label class="lmc-competition-label" for="' . esc_attr($select_id) . '">' . esc_html($title) . '</label>';
+        }
+
+        $aria_label = $show_label ? '' : ' aria-label="' . esc_attr($title) . '"';
+        echo '<select class="lmc-competition-select" id="' . esc_attr($select_id) . '" data-lmc-competition-select="1"' . $aria_label . '>';
+        echo '<option value=""' . (empty($current_comp_id) ? ' selected' : '') . '>Use current competition</option>';
+
+        if (!empty($competitions)) {
+            foreach ($competitions as $competition) {
+                $selected = ($current_comp_id && $current_comp_id === $competition['id']) ? ' selected' : '';
+                echo '<option value="' . esc_attr($competition['id']) . '"' . $selected . '>' . esc_html($competition['name']) . '</option>';
+            }
+        } else {
+            echo '<option value="">No competitions available</option>';
+        }
+
+        echo '</select>';
+        echo '</div>';
+        echo '</div>';
+
+        return ob_get_clean();
+    }
+
+    /**
+     * Build data attributes for dynamic block updates
+     */
+    private function get_block_data_attributes($block_type, $attributes) {
+        $encoded_attributes = esc_attr(wp_json_encode($attributes));
+        return ' data-lmc-block-type="' . esc_attr($block_type) . '" data-lmc-block-attrs="' . $encoded_attributes . '"';
+    }
+
+    /**
+     * Handle AJAX block rendering for competition switching
+     */
+    public function handle_render_block_ajax() {
+        check_ajax_referer('lmc_frontend_nonce', 'nonce');
+
+        $block_type = isset($_POST['blockType']) ? sanitize_text_field(wp_unslash($_POST['blockType'])) : '';
+        $comp_id = isset($_POST['compId']) ? sanitize_text_field(wp_unslash($_POST['compId'])) : '';
+        $attributes = array();
+
+        if (isset($_POST['attributes'])) {
+            $decoded = json_decode(wp_unslash($_POST['attributes']), true);
+            if (is_array($decoded)) {
+                $attributes = $decoded;
+            }
+        }
+
+        $allowed_blocks = array('ladder', 'results', 'upcoming', 'results-upcoming', 'team-results', 'team-upcoming');
+        if (!in_array($block_type, $allowed_blocks, true)) {
+            wp_send_json_error(array('message' => 'Invalid block type'), 400);
+        }
+
+        $attributes['compId'] = $comp_id;
+
+        switch ($block_type) {
+            case 'ladder':
+                $html = $this->render_ladder_block($attributes);
+                break;
+            case 'results':
+                $html = $this->render_results_block($attributes);
+                break;
+            case 'upcoming':
+                $html = $this->render_upcoming_block($attributes);
+                break;
+            case 'results-upcoming':
+                $html = $this->render_results_upcoming_block($attributes);
+                break;
+            case 'team-results':
+                $html = $this->render_team_results_block($attributes);
+                break;
+            case 'team-upcoming':
+                $html = $this->render_team_upcoming_block($attributes);
+                break;
+            default:
+                $html = '';
+        }
+
+        wp_send_json_success(array('html' => $html));
     }
     
     /**
