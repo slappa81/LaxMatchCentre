@@ -19,6 +19,27 @@ class LMC_Scraper {
      * Base URL for MyGameDay/SportsTG
      */
     private $base_url = 'https://websites.mygameday.app';
+
+    /**
+     * Normalize team name for consistent logo matching
+     *
+     * @param string $team_name Team name
+     * @return string Normalized key
+     */
+    private function normalize_team_key($team_name) {
+        $team_name = trim((string)$team_name);
+        if ($team_name === '') {
+            return '';
+        }
+
+        $team_name = strtolower($team_name);
+        $team_name = preg_replace('/\s+/', ' ', $team_name);
+        $team_name = str_replace('&', 'and', $team_name);
+        $team_name = preg_replace('/[^a-z0-9 ]/', '', $team_name);
+        $team_name = preg_replace('/\s+/', '-', trim($team_name));
+
+        return $team_name;
+    }
     
     /**
      * Get ladder data for a competition
@@ -205,8 +226,8 @@ class LMC_Scraper {
                     'round' => isset($match['Round']) ? (int)$match['Round'] : $round_num,
                     'date' => isset($match['DateRaw']) ? $match['DateRaw'] : '',
                     'time' => isset($match['TimeRaw']) ? $match['TimeRaw'] : '',
-                    'home_team' => isset($match['HomeNameFMT']) ? html_entity_decode($match['HomeNameFMT']) : '',
-                    'away_team' => isset($match['AwayNameFMT']) ? html_entity_decode($match['AwayNameFMT']) : '',
+                    'home_team' => isset($match['HomeNameFMT']) ? trim(strip_tags(html_entity_decode($match['HomeNameFMT']))) : '',
+                    'away_team' => isset($match['AwayNameFMT']) ? trim(strip_tags(html_entity_decode($match['AwayNameFMT']))) : '',
                     'venue' => isset($match['VenueName']) ? html_entity_decode($match['VenueName']) : '',
                     'home_score' => null,
                     'away_score' => null,
@@ -804,18 +825,25 @@ class LMC_Scraper {
                 if (is_array($fixtures_data)) {
                     foreach ($fixtures_data as $fixture) {
                         if (!empty($fixture['home_team']) && !empty($fixture['home_logo'])) {
-                            $team_logos[$fixture['home_team']] = $fixture['home_logo'];
+                            $team_key = $this->normalize_team_key($fixture['home_team']);
+                            if ($team_key !== '') {
+                                $team_logos[$team_key] = $fixture['home_logo'];
+                            }
                         }
                         if (!empty($fixture['away_team']) && !empty($fixture['away_logo'])) {
-                            $team_logos[$fixture['away_team']] = $fixture['away_logo'];
+                            $team_key = $this->normalize_team_key($fixture['away_team']);
+                            if ($team_key !== '') {
+                                $team_logos[$team_key] = $fixture['away_logo'];
+                            }
                         }
                     }
                 }
                 
                 // Merge logos into ladder data
                 foreach ($ladder as &$team) {
-                    if (isset($team_logos[$team['team']])) {
-                        $team['logo'] = $team_logos[$team['team']];
+                    $team_key = $this->normalize_team_key($team['team']);
+                    if ($team_key !== '' && isset($team_logos[$team_key])) {
+                        $team['logo'] = $team_logos[$team_key];
                         error_log('LMC Scraper: Added logo to ladder for ' . $team['team']);
                     }
                 }
