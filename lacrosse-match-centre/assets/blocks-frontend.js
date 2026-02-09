@@ -5,6 +5,12 @@
     const ajaxUrl = frontendData.ajaxUrl || '';
     const ajaxNonce = frontendData.nonce || '';
 
+    function scrollCarouselToEnd(carousel) {
+        requestAnimationFrame(function() {
+            carousel.scrollLeft = Math.max(0, carousel.scrollWidth - carousel.clientWidth);
+        });
+    }
+
     function initCarousel(block) {
         const carousel = block.querySelector('.lmc-carousel');
         if (!carousel) {
@@ -24,6 +30,8 @@
                 carousel.scrollBy({ left: delta, behavior: 'smooth' });
             });
         });
+
+        scrollCarouselToEnd(carousel);
     }
 
     function initAllCarousels() {

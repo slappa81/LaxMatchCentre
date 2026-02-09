@@ -637,21 +637,23 @@ class LMC_Blocks {
             }
         }
 
-        $combined_items = array();
+        $results_items = array();
         if ($results && !empty($results)) {
             foreach ($results as $result) {
                 $timestamp = $this->get_fixture_timestamp($result);
-                $combined_items[] = array(
+                $results_items[] = array(
                     'type' => 'result',
                     'timestamp' => $timestamp,
                     'data' => $result
                 );
             }
         }
+
+        $upcoming_items = array();
         if ($games && !empty($games)) {
             foreach ($games as $game) {
                 $timestamp = $this->get_fixture_timestamp($game);
-                $combined_items[] = array(
+                $upcoming_items[] = array(
                     'type' => 'upcoming',
                     'timestamp' => $timestamp,
                     'data' => $game
@@ -659,7 +661,7 @@ class LMC_Blocks {
             }
         }
 
-        usort($combined_items, function($a, $b) {
+        usort($results_items, function($a, $b) {
             $a_time = $a['timestamp'];
             $b_time = $b['timestamp'];
 
@@ -675,6 +677,25 @@ class LMC_Blocks {
 
             return 0;
         });
+
+        usort($upcoming_items, function($a, $b) {
+            $a_time = $a['timestamp'];
+            $b_time = $b['timestamp'];
+
+            if ($a_time !== false && $b_time !== false) {
+                return $a_time <=> $b_time;
+            }
+            if ($a_time !== false) {
+                return -1;
+            }
+            if ($b_time !== false) {
+                return 1;
+            }
+
+            return 0;
+        });
+
+        $combined_items = array_merge($results_items, $upcoming_items);
 
         echo '<div class="lmc-carousel" data-carousel="combined"' . $carousel_style . '>';
         echo '<div class="lmc-carousel-track">';

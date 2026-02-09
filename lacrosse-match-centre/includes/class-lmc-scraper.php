@@ -843,7 +843,13 @@ class LMC_Scraper {
             $finals_fixtures = $this->get_round_fixtures($comp_id, 0, $pool_num);
             if (!empty($finals_fixtures)) {
                 error_log('LMC Scraper: Pool ' . $pool_num . ' returned fixtures with round=0');
-                return $finals_fixtures;
+                foreach ($finals_fixtures as $fixture) {
+                    $key = $pool_num . '_' . $fixture['round'] . '_' . $fixture['home_team'] . '_' . $fixture['away_team'] . '_' . $fixture['date'];
+                    if (!isset($seen_fixture_keys[$key])) {
+                        $all_fixtures[] = $fixture;
+                        $seen_fixture_keys[$key] = true;
+                    }
+                }
             }
         }
 
