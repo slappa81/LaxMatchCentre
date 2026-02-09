@@ -76,6 +76,15 @@ class LMC_Blocks {
             array(),
             filemtime(plugin_dir_path(dirname(__FILE__)) . 'assets/blocks.css')
         );
+
+        // Register front-end block script (carousel behavior)
+        wp_register_script(
+            'lacrosse-match-centre-blocks-frontend',
+            plugin_dir_url(dirname(__FILE__)) . 'assets/blocks-frontend.js',
+            array(),
+            filemtime(plugin_dir_path(dirname(__FILE__)) . 'assets/blocks-frontend.js'),
+            true
+        );
         
         error_log('LMC Blocks: Assets registered');
     }
@@ -174,6 +183,44 @@ class LMC_Blocks {
         ));
         
         error_log('LMC Blocks: Results block registered');
+
+        // Register combined results + upcoming block
+        register_block_type('lacrosse-match-centre/results-upcoming', array(
+            'api_version' => 2,
+            'editor_script' => 'lacrosse-match-centre-blocks',
+            'editor_style' => 'lacrosse-match-centre-blocks-editor',
+            'style' => 'lacrosse-match-centre-blocks',
+            'script' => 'lacrosse-match-centre-blocks-frontend',
+            'attributes' => array(
+                'title' => array(
+                    'type' => 'string',
+                    'default' => 'Results & Upcoming'
+                ),
+                'compId' => array(
+                    'type' => 'string',
+                    'default' => ''
+                ),
+                'resultsLimit' => array(
+                    'type' => 'number',
+                    'default' => 3
+                ),
+                'upcomingLimit' => array(
+                    'type' => 'number',
+                    'default' => 3
+                ),
+                'cardsPerView' => array(
+                    'type' => 'number',
+                    'default' => 4
+                ),
+                'displayMode' => array(
+                    'type' => 'string',
+                    'default' => 'text'
+                )
+            ),
+            'render_callback' => array($this, 'render_results_upcoming_block')
+        ));
+
+        error_log('LMC Blocks: Results/Upcoming block registered');
         
         // Register team results block
         register_block_type('lacrosse-match-centre/team-results', array(
@@ -459,6 +506,176 @@ class LMC_Blocks {
         
         return ob_get_clean();
     }
+
+    /**
+     * Render combined results + upcoming block
+     */
+    public function render_results_upcoming_block($attributes) {
+        $title = isset($attributes['title']) ? $attributes['title'] : 'Results & Upcoming';
+        $comp_id = isset($attributes['compId']) && !empty($attributes['compId']) ? $attributes['compId'] : null;
+        $results_limit = isset($attributes['resultsLimit']) ? absint($attributes['resultsLimit']) : 3;
+        $upcoming_limit = isset($attributes['upcomingLimit']) ? absint($attributes['upcomingLimit']) : 3;
+        $cards_per_view = isset($attributes['cardsPerView']) ? absint($attributes['cardsPerView']) : 4;
+        $display_mode = isset($attributes['displayMode']) ? $attributes['displayMode'] : 'text';
+
+        error_log('LMC Blocks: Rendering results/upcoming block with compId: ' . ($comp_id ? $comp_id : 'NULL (will use current)'));
+
+        ob_start();
+
+        $carousel_style = ' style="--lmc-cards-per-view: ' . esc_attr($cards_per_view) . ';"';
+
+        echo '<div class="wp-block-lacrosse-match-centre-results-upcoming lmc-results-upcoming-block">';
+
+        if (!empty($title)) {
+            echo '<h2 class="lmc-block-title">' . esc_html($title) . '</h2>';
+        }
+
+        $results = LMC_Data::get_team_results($comp_id, null, $results_limit);
+        $games = LMC_Data::get_team_upcoming($comp_id, null, $upcoming_limit);
+
+        echo '<div class="lmc-results-upcoming">';
+        echo '<div class="lmc-section-header">';
+        echo '<h3 class="lmc-section-title">Results & Upcoming</h3>';
+        echo '<div class="lmc-carousel-controls">';
+        echo '<button class="lmc-carousel-btn" type="button" data-direction="prev" aria-label="Scroll left">Prev</button>';
+        echo '<button class="lmc-carousel-btn" type="button" data-direction="next" aria-label="Scroll right">Next</button>';
+        echo '</div>';
+        echo '</div>';
+
+        if ((!$results || empty($results)) && (!$games || empty($games))) {
+            echo '<p class="lmc-no-data">No results or upcoming games available. Please scrape data from the admin panel.</p>';
+            echo '</div>';
+            echo '</div>';
+            return ob_get_clean();
+        }
+
+        $logos_data = array();
+        if ($results && !empty($results)) {
+            foreach ($results as $result) {
+                if (isset($result['home_logo']) && !empty($result['home_logo'])) {
+                    $logos_data[$result['home_team']] = $result['home_logo'];
+                }
+                if (isset($result['away_logo']) && !empty($result['away_logo'])) {
+                    $logos_data[$result['away_team']] = $result['away_logo'];
+                }
+            }
+        }
+        if ($games && !empty($games)) {
+            foreach ($games as $game) {
+                if (isset($game['home_logo']) && !empty($game['home_logo'])) {
+                    $logos_data[$game['home_team']] = $game['home_logo'];
+                }
+                if (isset($game['away_logo']) && !empty($game['away_logo'])) {
+                    $logos_data[$game['away_team']] = $game['away_logo'];
+                }
+            }
+        }
+
+        $combined_items = array();
+        if ($results && !empty($results)) {
+            foreach ($results as $result) {
+                $timestamp = $this->get_fixture_timestamp($result);
+                $combined_items[] = array(
+                    'type' => 'result',
+                    'timestamp' => $timestamp,
+                    'data' => $result
+                );
+            }
+        }
+        if ($games && !empty($games)) {
+            foreach ($games as $game) {
+                $timestamp = $this->get_fixture_timestamp($game);
+                $combined_items[] = array(
+                    'type' => 'upcoming',
+                    'timestamp' => $timestamp,
+                    'data' => $game
+                );
+            }
+        }
+
+        usort($combined_items, function($a, $b) {
+            $a_time = $a['timestamp'];
+            $b_time = $b['timestamp'];
+
+            if ($a_time !== false && $b_time !== false) {
+                return $a_time <=> $b_time;
+            }
+            if ($a_time !== false) {
+                return -1;
+            }
+            if ($b_time !== false) {
+                return 1;
+            }
+
+            return 0;
+        });
+
+        echo '<div class="lmc-carousel" data-carousel="combined"' . $carousel_style . '>';
+        echo '<div class="lmc-carousel-track">';
+
+        if (!empty($combined_items)) {
+            foreach ($combined_items as $item) {
+                if ($item['type'] === 'result') {
+                    $result = $item['data'];
+                    $round_label = !empty($result['round_label']) ? $result['round_label'] : 'Round ' . $result['round'];
+                    echo '<div class="lmc-result lmc-carousel-item">';
+                    echo '<div class="lmc-card-type lmc-card-type-result">Result</div>';
+                    echo '<div class="lmc-result-round">' . esc_html($round_label) . '</div>';
+                    if (!empty($result['formatted_datetime'])) {
+                        echo '<div class="lmc-result-datetime">' . esc_html($result['formatted_datetime']) . '</div>';
+                    } else {
+                        echo '<div class="lmc-result-date">' . esc_html($result['date']) . '</div>';
+                    }
+                    echo '<div class="lmc-result-teams">';
+                    echo '<div class="lmc-result-team lmc-result-home">';
+                    echo '<span class="lmc-result-team-name">' . $this->render_team_display($result['home_team'], $display_mode, $logos_data) . '</span>';
+                    echo '<span class="lmc-result-score">' . esc_html($result['home_score']) . '</span>';
+                    echo '</div>';
+                    echo '<div class="lmc-result-team lmc-result-away">';
+                    echo '<span class="lmc-result-team-name">' . $this->render_team_display($result['away_team'], $display_mode, $logos_data) . '</span>';
+                    echo '<span class="lmc-result-score">' . esc_html($result['away_score']) . '</span>';
+                    echo '</div>';
+                    echo '</div>';
+                    if (!empty($result['venue'])) {
+                        echo '<div class="lmc-result-venue">' . $this->render_venue_with_map($result['venue']) . '</div>';
+                    }
+                    echo '</div>';
+                    continue;
+                }
+
+                $game = $item['data'];
+                $round_label = !empty($game['round_label']) ? $game['round_label'] : 'Round ' . $game['round'];
+                echo '<div class="lmc-game lmc-carousel-item">';
+                echo '<div class="lmc-card-type lmc-card-type-upcoming">Upcoming</div>';
+                echo '<div class="lmc-game-round">' . esc_html($round_label) . '</div>';
+                if (!empty($game['formatted_datetime'])) {
+                    echo '<div class="lmc-game-datetime">' . esc_html($game['formatted_datetime']) . '</div>';
+                } else {
+                    echo '<div class="lmc-game-date">' . esc_html($game['date']) . '</div>';
+                    if (!empty($game['time'])) {
+                        echo '<div class="lmc-game-time">' . esc_html($game['time']) . '</div>';
+                    }
+                }
+                echo '<div class="lmc-game-teams">';
+                echo '<div class="lmc-team-home">' . $this->render_team_display($game['home_team'], $display_mode, $logos_data) . '</div>';
+                echo '<div class="lmc-vs">vs</div>';
+                echo '<div class="lmc-team-away">' . $this->render_team_display($game['away_team'], $display_mode, $logos_data) . '</div>';
+                echo '</div>';
+                if (!empty($game['venue'])) {
+                    echo '<div class="lmc-game-venue">' . $this->render_venue_with_map($game['venue']) . '</div>';
+                }
+                echo '</div>';
+            }
+        }
+
+        echo '</div>';
+        echo '</div>';
+        echo '</div>';
+
+        echo '</div>';
+
+        return ob_get_clean();
+    }
     
     /**
      * Render team results block
@@ -734,5 +951,30 @@ class LMC_Blocks {
         $output .= '</a>';
         
         return $output;
+    }
+
+    /**
+     * Convert a fixture date/time into a sortable timestamp
+     *
+     * @param array $fixture Fixture data
+     * @return int|false Unix timestamp or false on failure
+     */
+    private function get_fixture_timestamp($fixture) {
+        $date = isset($fixture['date']) ? trim((string)$fixture['date']) : '';
+        $time = isset($fixture['time']) ? trim((string)$fixture['time']) : '';
+
+        if ($date === '') {
+            return false;
+        }
+
+        $normalized_date = str_replace('/', ' ', $date);
+        $normalized_date = preg_replace('/\s+/', ' ', trim($normalized_date));
+        if (!preg_match('/\b\d{4}\b/', $normalized_date)) {
+            $normalized_date .= ' ' . current_time('Y');
+        }
+        $datetime = trim($normalized_date . ' ' . $time);
+
+        $timestamp = strtotime($datetime);
+        return ($timestamp === false) ? false : $timestamp;
     }
 }

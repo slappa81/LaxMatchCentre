@@ -121,6 +121,115 @@
     margin-bottom: 20px;
 }
 
+/* Results + Upcoming Block Styles */
+.lmc-results-upcoming-block {
+    margin-bottom: 20px;
+}
+
+.lmc-results-upcoming {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.lmc-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.lmc-section-title {
+    margin: 0;
+    font-size: 1.1em;
+    font-weight: 700;
+    color: #111827;
+}
+
+.lmc-carousel-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.lmc-carousel-btn {
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    color: #111827;
+    font-size: 0.85em;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.lmc-carousel-btn:hover {
+    background: #f3f4f6;
+}
+
+.lmc-carousel {
+    overflow-x: auto;
+    scroll-behavior: smooth;
+}
+
+.lmc-carousel-track {
+    display: flex;
+    gap: 16px;
+    padding-bottom: 4px;
+}
+
+.lmc-card-type {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.7em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 6px;
+}
+
+.lmc-card-type-result {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.lmc-card-type-upcoming {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.lmc-results-upcoming-block .lmc-game-venue::before,
+.lmc-results-upcoming-block .lmc-result-venue::before {
+    content: none;
+}
+
+.lmc-carousel-item {
+    flex: 0 0 calc((100% - (var(--lmc-cards-per-view, 4) - 1) * 16px) / var(--lmc-cards-per-view, 4));
+    margin-bottom: 0;
+}
+
+.lmc-carousel .lmc-result,
+.lmc-carousel .lmc-game {
+    margin-bottom: 0;
+}
+
+@media (max-width: 900px) {
+    .lmc-carousel {
+        --lmc-cards-per-view: 2;
+    }
+}
+
+@media (max-width: 600px) {
+    .lmc-carousel {
+        --lmc-cards-per-view: 1;
+    }
+
+    .lmc-section-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
 .lmc-result {
     background: white;
     border: 1px solid #e5e7eb;

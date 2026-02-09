@@ -290,6 +290,127 @@
     });
 
     console.log('Lacrosse Match Centre: Results block registered');
+
+    // Results + Upcoming Block
+    registerBlockType('lacrosse-match-centre/results-upcoming', {
+        title: __('Results & Upcoming', 'lacrosse-match-centre'),
+        icon: 'schedule',
+        category: 'lacrosse-match-centre',
+        attributes: {
+            title: {
+                type: 'string',
+                default: 'Results & Upcoming'
+            },
+            compId: {
+                type: 'string',
+                default: ''
+            },
+            resultsLimit: {
+                type: 'number',
+                default: 3
+            },
+            upcomingLimit: {
+                type: 'number',
+                default: 3
+            },
+            cardsPerView: {
+                type: 'number',
+                default: 4
+            },
+            displayMode: {
+                type: 'string',
+                default: 'text'
+            }
+        },
+
+        edit: function(props) {
+            const { attributes, setAttributes } = props;
+
+            return el('div', { className: 'lmc-block-editor' },
+                el(InspectorControls, null,
+                    el(PanelBody, {
+                        title: __('Block Settings', 'lacrosse-match-centre'),
+                        initialOpen: true
+                    },
+                        el(TextControl, {
+                            label: __('Title', 'lacrosse-match-centre'),
+                            value: attributes.title,
+                            onChange: function(value) {
+                                setAttributes({ title: value });
+                            }
+                        }),
+                        el(SelectControl, {
+                            label: __('Competition', 'lacrosse-match-centre'),
+                            help: __('Select a competition or use the current default', 'lacrosse-match-centre'),
+                            value: attributes.compId,
+                            options: competitions,
+                            onChange: function(value) {
+                                setAttributes({ compId: value });
+                            }
+                        }),
+                        el(RangeControl, {
+                            label: __('Number of Results', 'lacrosse-match-centre'),
+                            value: attributes.resultsLimit,
+                            onChange: function(value) {
+                                setAttributes({ resultsLimit: value });
+                            },
+                            min: 1,
+                            max: 20
+                        }),
+                        el(RangeControl, {
+                            label: __('Number of Upcoming Games', 'lacrosse-match-centre'),
+                            value: attributes.upcomingLimit,
+                            onChange: function(value) {
+                                setAttributes({ upcomingLimit: value });
+                            },
+                            min: 1,
+                            max: 20
+                        }),
+                        el(SelectControl, {
+                            label: __('Cards Per View', 'lacrosse-match-centre'),
+                            value: String(attributes.cardsPerView),
+                            options: [
+                                { label: '3', value: '3' },
+                                { label: '4', value: '4' },
+                                { label: '5', value: '5' }
+                            ],
+                            onChange: function(value) {
+                                setAttributes({ cardsPerView: parseInt(value, 10) });
+                            }
+                        }),
+                        el(SelectControl, {
+                            label: __('Display Mode', 'lacrosse-match-centre'),
+                            help: __('Show team logos, names, or both', 'lacrosse-match-centre'),
+                            value: attributes.displayMode,
+                            options: [
+                                { label: 'Team Names Only', value: 'text' },
+                                { label: 'Team Logos Only', value: 'image' },
+                                { label: 'Both Logo and Name', value: 'both' }
+                            ],
+                            onChange: function(value) {
+                                setAttributes({ displayMode: value });
+                            }
+                        })
+                    )
+                ),
+                el(Placeholder, {
+                    icon: 'schedule',
+                    label: __('Results & Upcoming', 'lacrosse-match-centre')
+                },
+                    el('div', { style: { textAlign: 'center' } },
+                        el('strong', null, attributes.title || 'Results & Upcoming'),
+                        el('p', null, __('Showing ' + attributes.resultsLimit + ' results and ' + attributes.upcomingLimit + ' upcoming games', 'lacrosse-match-centre'))
+                    )
+                )
+            );
+        },
+
+        save: function() {
+            return null;
+        }
+    });
+
+    console.log('Lacrosse Match Centre: Results/Upcoming block registered');
     
     // Team Results Block
     registerBlockType('lacrosse-match-centre/team-results', {
