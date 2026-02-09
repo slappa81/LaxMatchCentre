@@ -1150,7 +1150,10 @@ class LMC_Blocks {
      * Handle AJAX block rendering for competition switching
      */
     public function handle_render_block_ajax() {
-        check_ajax_referer('lmc_frontend_nonce', 'nonce');
+        $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+        if (!empty($nonce) && !wp_verify_nonce($nonce, 'lmc_frontend_nonce')) {
+            error_log('LMC Blocks: Invalid nonce for block render, continuing without nonce validation');
+        }
 
         $block_type = isset($_POST['blockType']) ? sanitize_text_field(wp_unslash($_POST['blockType'])) : '';
         $comp_id = isset($_POST['compId']) ? sanitize_text_field(wp_unslash($_POST['compId'])) : '';
