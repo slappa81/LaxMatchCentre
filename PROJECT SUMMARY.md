@@ -172,5 +172,6 @@ An all-in-one WordPress plugin:
 - Error handling
 
 - **Built for:** Williamstown Lacrosse Club
+- **Author:** Michael Kindred - michael.kindred@outlook.com
 - **Inspired by:** [sportstg-api](https://github.com/AussieGuy0/sportstg-api) by AussieGuy0
 - **License:** MIT (free to use, modify, distribute)
