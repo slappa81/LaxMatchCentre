@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Lacrosse Match Centre plugin displays live competition data from SportsTG on your WordPress website. It includes:
+The Lacrosse Match Centre plugin displays live competition data from GameDay on your WordPress website. It includes:
 - Competition ladder/standings
 - Upcoming games schedule
 - Recent match results
@@ -41,7 +41,7 @@ Access: **Settings → Match Centre**
 
 **Add Competition**
 1. Click **Add Competition**
-2. Enter Competition ID (from SportsTG URL)
+2. Enter Competition ID (from GameDay URL)
 3. Enter Competition Name
 4. Set Current Round number
 5. Set Max Rounds (total rounds in season)
@@ -273,7 +273,7 @@ The plugin includes responsive CSS. To customize:
 
 ### Competition ID
 
-Find it in SportsTG URL:
+Find it in GameDay URL:
 ```
 https://www.sportstg.com/comp_ladder.cgi?c=140768
                                            ^^^^^^
@@ -328,7 +328,7 @@ A: No. Data is cached, so widgets load quickly after initial scraping.
 **Q: Can I customize the appearance?**
 A: Yes! Add custom CSS via your theme or the WordPress Customizer.
 
-**Q: What if SportsTG changes their website?**
+**Q: What if GameDay changes their website?**
 A: The scraper may need updates. Check for plugin updates regularly.
 
 **Q: Is this legal?**

@@ -45,7 +45,7 @@ lacrosse-match-centre/
 - Default settings initialization
 
 ### 2. Scraper Class (`class-lmc-scraper.php`)
-- `get_ladder()` - Fetch competition ladder from SportsTG
+- `get_ladder()` - Fetch competition ladder from GameDay
 - `get_round_fixtures()` - Fetch fixtures for specific round
 - `fetch_all_fixtures()` - Scrape all rounds in competition
 - `get_upcoming_games()` - Filter upcoming matches
@@ -156,7 +156,7 @@ lacrosse-match-centre/
 ## 🎯 Features Implemented
 
 ### Scraping Features ✅
-- Fetch ladder data from SportsTG
+- Fetch ladder data from GameDay
 - Fetch fixtures for all rounds
 - Parse HTML using DOMDocument
 - Separate upcoming vs completed games
@@ -244,7 +244,7 @@ lacrosse-match-centre/
 The plugin is now ready to:
 1. **Install** on a WordPress site
 2. **Configure** via admin panel
-3. **Scrape** data from SportsTG
+3. **Scrape** data from GameDay
 4. **Display** via widgets
 5. **Deploy** to production
 

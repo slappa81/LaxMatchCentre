@@ -205,7 +205,7 @@ class LMC_Admin {
      * Render competitions section
      */
     public function render_competitions_section() {
-        echo '<p>Manage your competitions and scrape data from SportsTG.</p>';
+        echo '<p>Manage your competitions and scrape data from GameDay.</p>';
     }
     
     /**
@@ -1034,7 +1034,7 @@ JAVASCRIPT;
                 ?>
                 
                 <h2>Manage Competitions</h2>
-                <p>Add competitions and scrape data from MyGameDay/SportsTG.</p>
+                <p>Add competitions and scrape data from GameDay.</p>
                 <p><strong>Competition ID Format:</strong> <code>0-&lt;Association&gt;-0-&lt;Competition&gt;-0</code></p>
                 <p><strong>Example:</strong> If your Association is <code>1064</code> and Competition is <code>646414</code>, enter: <code>0-1064-0-646414-0</code></p>
                 <p>Find these in your GameDay website URL. See <a href="https://helpdesk.mygameday.app/help/adding-and-changing-the-match-centre-ids" target="_blank">MyGameDay Help</a> for details.</p>
@@ -1238,10 +1238,10 @@ JAVASCRIPT;
                                 $logo_source = 'Custom Upload';
                             } elseif (isset($cached_logos[$team_key]) && !empty($cached_logos[$team_key]['url'])) {
                                 $logo_url = $cached_logos[$team_key]['url'];
-                                $logo_source = 'Cached from SportsTG';
+                                $logo_source = 'Cached from GameDay';
                             } elseif (isset($team['logo']) && !empty($team['logo'])) {
                                 $logo_url = $team['logo'];
-                                $logo_source = 'SportsTG (Direct)';
+                                $logo_source = 'GameDay (Direct)';
                             }
                             
                             // Convert protocol-relative URLs to HTTPS

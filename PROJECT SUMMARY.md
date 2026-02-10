@@ -1,12 +1,12 @@
 # LaxMatchCentre
 Lacrosse Match Centre
 
-This project provides a complete WordPress plugin for displaying lacrosse league statistics, with a built-in scraper that fetches data directly from SportsTG.
+This project provides a complete WordPress plugin for displaying lacrosse league statistics, with a built-in scraper that fetches data directly from GameDay.
 
 ## Problem
 
 The Williamstown Lacrosse Club needed a way to:
-1. Automatically fetch game information and statistics from SportsTG
+1. Automatically fetch game information and statistics from GameDay
 2. Display ladders, upcoming games, and results on their WordPress website
 3. Keep the data updated without manual file transfers or complex setups
 
@@ -15,7 +15,7 @@ The Williamstown Lacrosse Club needed a way to:
 An all-in-one WordPress plugin:
 
 ### Integrated PHP Scraper
-- Fetches competition data directly from SportsTG
+- Fetches competition data directly from GameDay
 - Uses WordPress HTTP API for reliable connections
 - Parses HTML using native PHP DOMDocument and XPath
 - No external dependencies or Node.js required
@@ -31,7 +31,7 @@ An all-in-one WordPress plugin:
 ## Key Features
 ✅ **Integrated Scraper** - Built-in PHP scraper, no external tools needed  
 ✅ **One-Click Updates** - Scrape data with a button click in WordPress admin  
-✅ **Automated Data Collection** - Scraper fetches data from SportsTG, this must be contained within the Wordpress Plugin 
+✅ **Automated Data Collection** - Scraper fetches data from GameDay, this must be contained within the Wordpress Plugin 
 ✅ **Multiple Competitions** - Support for multiple competitions   
 ✅ **Ladder Display** - Competition standings with points, wins, losses  
 ✅ **Upcoming Games** - Shows future matches with dates and venues  
@@ -89,7 +89,7 @@ An all-in-one WordPress plugin:
 1. **Sports Club Websites** - Display your team's competition data
 2. **League Websites** - Show standings and fixtures for entire league
 3. **Fan Sites** - Keep supporters informed of latest results
-4. **Multi-Sport Sites** - Can work with any sport on SportsTG
+4. **Multi-Sport Sites** - Can work with any sport on GameDay
 
 ## Security
 

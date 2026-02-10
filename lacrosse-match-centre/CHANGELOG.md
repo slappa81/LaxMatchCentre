@@ -6,7 +6,7 @@ All notable changes to the Lacrosse Match Centre plugin will be documented in th
 
 ### Added
 - Initial release of Lacrosse Match Centre WordPress plugin
-- Built-in PHP scraper for fetching data from SportsTG
+- Built-in PHP scraper for fetching data from GameDay
 - Competition ladder widget with standings display
 - Upcoming games widget with fixture information
 - Recent results widget with match scores
@@ -20,7 +20,7 @@ All notable changes to the Lacrosse Match Centre plugin will be documented in th
 - Comprehensive documentation (README, INSTALL, USER-GUIDE)
 
 ### Features
-- Scrape ladder standings from SportsTG
+- Scrape ladder standings from GameDay
 - Scrape all fixtures for a competition
 - Automatic separation of upcoming games and completed results
 - Configurable cache duration
@@ -60,7 +60,7 @@ All notable changes to the Lacrosse Match Centre plugin will be documented in th
 - Export data functionality
 - Import/export settings
 - Multi-language support
-- Player statistics (if available from SportsTG)
+- Player statistics (if available from GameDay)
 - Team profiles
 - Fixture calendar view
 - Search functionality
@@ -103,7 +103,7 @@ None - Initial release
 
 ### Version 1.0.0
 - Scraping all rounds can take 30-60 seconds for long competitions
-- Some SportsTG competitions may have different HTML structures requiring parser updates
+- Some GameDay competitions may have different HTML structures requiring parser updates
 - No automatic scheduling yet - must scrape manually or set up external cron
 
 ---

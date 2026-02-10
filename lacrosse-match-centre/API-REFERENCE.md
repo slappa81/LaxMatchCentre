@@ -1,6 +1,6 @@
 # MyGameDay API Reference
 
-This plugin scrapes data from MyGameDay/SportsTG websites to display lacrosse competition information.
+This plugin scrapes data from GameDay websites to display lacrosse competition information.
 
 ## Official Documentation
 

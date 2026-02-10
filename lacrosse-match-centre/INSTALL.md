@@ -38,7 +38,7 @@
 1. Go to **Settings → Match Centre** in WordPress admin
 2. Click **Add Competition**
 3. Fill in the details:
-   - **Competition ID**: Find this in the SportsTG URL (e.g., `140768`)
+   - **Competition ID**: Find this in the GameDay URL (e.g., `140768`)
    - **Competition Name**: E.g., "Men's Division 1"
    - **Current Round**: The current round number (e.g., `8`)
    - **Max Rounds**: Total rounds in the season (e.g., `18`)
@@ -67,9 +67,9 @@
 
 ## Finding Your Competition ID
 
-To find your SportsTG competition ID:
+To find your GameDay competition ID:
 
-1. Go to SportsTG website
+1. Go to GameDay website
 2. Navigate to your competition/league
 3. Look at the URL in your browser
 4. The competition ID is in the URL after `c=`
@@ -125,7 +125,7 @@ Files created:
 
 **Solutions**:
 1. Verify the Competition ID is correct
-2. Check that SportsTG website is accessible
+2. Check that GameDay website is accessible
 3. Increase PHP `max_execution_time` if timeout occurs
 4. Verify your server can make outbound HTTP requests
 

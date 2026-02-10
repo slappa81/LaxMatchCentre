@@ -1,6 +1,6 @@
 <?php
 /**
- * Scraper class for fetching data from SportsTG
+ * Scraper class for fetching data from GameDay
  *
  * @package Lacrosse_Match_Centre
  */
@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
 class LMC_Scraper {
     
     /**
-     * Base URL for MyGameDay/SportsTG
+    * Base URL for GameDay
      */
     private $base_url = 'https://websites.mygameday.app';
 

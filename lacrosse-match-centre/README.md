@@ -1,13 +1,13 @@
 # Lacrosse Match Centre - WordPress Plugin
 
-A complete WordPress plugin for displaying lacrosse league data from SportsTG with a built-in PHP scraper.
+A complete WordPress plugin for displaying lacrosse league data from GameDay with a built-in PHP scraper.
 
 ## 🚀 Features
 
 - **📊 Competition Ladder** - Display current season standings
 - **📅 Upcoming Games** - Show scheduled matches  
 - **🏆 Recent Results** - Display completed games with scores
-- **🔄 Integrated Scraper** - Built-in PHP scraper fetches data directly from SportsTG
+- **🔄 Integrated Scraper** - Built-in PHP scraper fetches data directly from GameDay
 - **⚡ Data Caching** - Efficient WordPress Transient caching
 - **🎨 Responsive Design** - Mobile-friendly widgets
 - **⚙️ Easy Configuration** - Simple admin settings page
@@ -38,7 +38,7 @@ See [INSTALL.md](INSTALL.md) for detailed installation instructions.
 1. Go to **Settings → Match Centre**
 2. Click **Add Competition**
 3. Fill in:
-   - Competition ID (from SportsTG URL)
+    - Competition ID (from GameDay URL)
    - Competition Name
    - Current Round
    - Max Rounds
@@ -62,7 +62,7 @@ See [INSTALL.md](INSTALL.md) for detailed installation instructions.
 
 ## 🎯 Finding Competition ID
 
-Competition ID is in the SportsTG URL:
+Competition ID is in the GameDay URL:
 
 ```
 https://www.sportstg.com/comp_ladder.cgi?c=140768&round=8
@@ -184,7 +184,7 @@ See [USER-GUIDE.md](USER-GUIDE.md) for setting up WordPress Cron or server cron 
 
 ### Scraping Fails
 - Verify Competition ID is correct
-- Check SportsTG website is accessible
+- Check GameDay website is accessible
 - Increase PHP max_execution_time if needed
 
 ### Widgets Not Appearing
@@ -217,7 +217,7 @@ See [API-REFERENCE.md](API-REFERENCE.md) for complete WP-CLI documentation.
 
 ### Data Flow
 1. Admin clicks "Scrape Data"
-2. PHP scraper fetches HTML from SportsTG
+2. PHP scraper fetches HTML from GameDay
 3. DOMDocument parses HTML data
 4. JSON files saved to `/data/` directory
 5. Widgets read JSON files
@@ -276,7 +276,7 @@ For support:
 
 ## ⚠️ Disclaimer
 
-This plugin scrapes publicly available data from SportsTG. The plugin author is not affiliated with SportsTG. Use responsibly and in accordance with SportsTG's terms of service.
+This plugin scrapes publicly available data from GameDay. The plugin author is not affiliated with GameDay. Use responsibly and in accordance with GameDay's terms of service.
 
 ---
 

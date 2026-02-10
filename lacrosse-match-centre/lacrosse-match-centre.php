@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Lacrosse Match Centre
  * Plugin URI: https://github.com/slappa81/LaxMatchCentre
- * Description: Display lacrosse league data from SportsTG with built-in scraper. Shows ladders, upcoming games, and results.
+ * Description: Display lacrosse league data from GameDay with built-in scraper. Shows ladders, upcoming games, and results.
  * Version: 1.0.0
  * Author: Williamstown Lacrosse Club
  * Author URI: https://williamstownlacrosse.com

@@ -1062,7 +1062,7 @@ class LMC_Blocks {
             $logo_url = $custom_logos[$team_key];
         }
         
-        // 2. Check cached logos (downloaded from SportsTG)
+        // 2. Check cached logos (downloaded from GameDay)
         if (empty($logo_url)) {
             $cached_logos = get_option('lmc_cached_logos', array());
             if (isset($cached_logos[$team_key]) && !empty($cached_logos[$team_key]['url'])) {

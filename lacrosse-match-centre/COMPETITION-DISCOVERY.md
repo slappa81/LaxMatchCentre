@@ -1,6 +1,6 @@
 # Competition Discovery Guide
 
-This plugin now includes functionality to automatically discover all available competitions from GameDay/SportsTG with their friendly names.
+This plugin now includes functionality to automatically discover all available competitions from GameDay with their friendly names.
 
 ## Methods Available
 

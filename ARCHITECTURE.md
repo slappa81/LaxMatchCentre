@@ -4,7 +4,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                       SportsTG Website                          │
+│                       GameDay Website                           │
 │                  (Public Competition Data)                       │
 └───────────────────────────┬─────────────────────────────────────┘
                             │ HTTPS Request
@@ -105,7 +105,7 @@
 
 ### 1. Data Collection Phase
 ```
-SportsTG → PHP Scraper (via WordPress HTTP API) → JSON Files
+GameDay → PHP Scraper (via WordPress HTTP API) → JSON Files
 ```
 - **Trigger**: Admin clicks "Scrape" button in WordPress admin
 - **Method**: AJAX request to WordPress backend
