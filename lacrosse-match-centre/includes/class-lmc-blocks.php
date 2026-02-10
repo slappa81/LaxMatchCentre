@@ -223,7 +223,7 @@ class LMC_Blocks {
             'attributes' => array(
                 'title' => array(
                     'type' => 'string',
-                    'default' => 'Results & Upcoming'
+                    'default' => ''
                 ),
                 'compId' => array(
                     'type' => 'string',
@@ -568,12 +568,16 @@ class LMC_Blocks {
      * Render combined results + upcoming block
      */
     public function render_results_upcoming_block($attributes) {
-        $title = isset($attributes['title']) ? $attributes['title'] : 'Results & Upcoming';
+        $title = isset($attributes['title']) ? $attributes['title'] : '';
         $comp_id = isset($attributes['compId']) && !empty($attributes['compId']) ? $attributes['compId'] : null;
         $results_limit = isset($attributes['resultsLimit']) ? absint($attributes['resultsLimit']) : 3;
         $upcoming_limit = isset($attributes['upcomingLimit']) ? absint($attributes['upcomingLimit']) : 3;
         $cards_per_view = isset($attributes['cardsPerView']) ? absint($attributes['cardsPerView']) : 4;
         $display_mode = isset($attributes['displayMode']) ? $attributes['displayMode'] : 'text';
+
+        if ($title === 'Results & Upcoming') {
+            $title = '';
+        }
 
         $block_attributes = array(
             'title' => $title,

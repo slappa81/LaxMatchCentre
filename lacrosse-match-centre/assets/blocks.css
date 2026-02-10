@@ -77,6 +77,14 @@
     margin-bottom: 20px;
 }
 
+.lmc-ladder-block .lmc-block-title {
+    font-size: 1em;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 10px;
+    text-transform: none;
+}
+
 .lmc-ladder-table {
     width: 100%;
     border-collapse: collapse;

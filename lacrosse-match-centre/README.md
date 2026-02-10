@@ -254,7 +254,7 @@ Free to use, modify, and distribute.
 
 - **Built for**: Williamstown Lacrosse Club
 - **Inspired by**: [sportstg-api](https://github.com/AussieGuy0/sportstg-api) by AussieGuy0
-- **Data Source**: SportsTG (publicly available data)
+- **Data Source**: GameDay (publicly available data)
 
 ## 📧 Support
 
@@ -281,7 +281,7 @@ This plugin scrapes publicly available data from SportsTG. The plugin author is 
 ---
 
 **Version**: 1.0.0  
-**Author**: Williamstown Lacrosse Club  
+**Author**: Michael Kindred  
 **Last Updated**: January 16, 2026
 
 ---
