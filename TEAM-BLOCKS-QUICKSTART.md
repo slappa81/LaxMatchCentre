@@ -12,9 +12,9 @@ Admin → Settings → Match Centre → Scrape Data (for your competition)
 Click "Load Teams" button → Teams populate in dropdown
 ```
 
-### Step 3: Select Primary Team
+### Step 3: Select Primary Team(s)
 ```
-Choose your team from dropdown → Save Settings
+Choose one or more teams from dropdown → Save Settings
 ```
 
 ### Step 4: Add Block to Page
@@ -53,7 +53,7 @@ Block Settings → Change title, competition, team, or limit
 ### Multi-Team Site
 - Create separate pages for each team
 - Use team name override in blocks to display different teams
-- Or create separate competitions with different primary teams
+- Or select multiple primary teams to render sections per team automatically
 
 ### News/Blog Posts
 - Embed **Team Results** in match reports
@@ -88,6 +88,10 @@ Block Settings → Change title, competition, team, or limit
 **Want to show different team?**
 - Either: Change primary team in settings (affects all blocks)
 - Or: Use team name override in individual blocks
+
+**Multiple teams selected?**
+- Each team gets its own section in Team Results/Upcoming blocks
+- Carousel controls are scoped per team section
 
 ## Quick Reference: All Blocks
 

@@ -2,6 +2,23 @@
 
 All notable changes to the Lacrosse Match Centre plugin will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- Gutenberg blocks for team-specific results and upcoming games
+- Multi-team primary team selection with per-team sections in team blocks
+- Results + Upcoming block with carousel controls
+- Competition discovery workflow with season selection
+
+### Changed
+- Results/upcoming carousel ordering to show latest results on the right
+- Automatic carousel scroll to the latest items on load
+- Documentation and UI wording aligned to GameDay IDs
+
+### Fixed
+- Competition switch no longer removes blocks; blocks are restored in original order
+- Frontend block updates handle cached pages more gracefully with fallback messaging
+
 ## [1.0.0] - 2026-01-16
 
 ### Added
@@ -54,7 +71,6 @@ All notable changes to the Lacrosse Match Centre plugin will be documented in th
 - WordPress Cron integration for automatic scraping
 - REST API endpoint for data access
 - Shortcode support
-- Gutenberg block support
 - Admin dashboard widgets
 - Email notifications for scraping results
 - Export data functionality

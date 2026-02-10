@@ -9,9 +9,10 @@
 1. Go to **Settings → Match Centre**
 2. Look for the **"🔍 Discover Competitions"** box
 3. Enter your Association ID (e.g., `1064`)
-4. Click **"Discover Competitions"**
-5. Click **"Use This"** next to any competition to add it
-6. Click **"Save Settings"**
+4. Click **"Load Seasons"** and pick a season
+5. Click **"Discover Competitions"**
+6. Click **"Use This"** next to any competition to add it
+7. Click **"Save Settings"**
 
 ![Competition Discovery](https://via.placeholder.com/800x400?text=Competition+Discovery+UI)
 

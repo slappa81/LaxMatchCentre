@@ -53,6 +53,54 @@ Displays recent match results.
 3. Configure settings in the block settings panel
 4. Adjust the number of results with the range slider
 
+### 4. Results + Upcoming Block
+Combines recent results and upcoming fixtures in a single carousel.
+
+**Block Name:** `lacrosse-match-centre/results-upcoming`
+
+**Settings:**
+- **Title**: Custom heading (default: "Results & Upcoming")
+- **Competition ID**: Optional - leave empty to use scraped competition data
+- **Results Limit**: How many results to display (1-20, default: 5)
+- **Upcoming Limit**: How many upcoming games to display (1-20, default: 5)
+
+**Usage:**
+1. Add a new block in the editor
+2. Search for "Results + Upcoming"
+3. Configure limits in the block settings panel
+
+### 5. Team Results Block
+Displays results for a selected team.
+
+**Block Name:** `lacrosse-match-centre/team-results`
+
+**Settings:**
+- **Title**: Custom heading (default: "Team Results")
+- **Competition ID**: Optional - leave empty to use scraped competition data
+- **Team Name**: Optional - leave empty to use Primary Team(s)
+- **Number of Results**: How many results to display (1-20, default: 5)
+
+**Usage:**
+1. Add a new block in the editor
+2. Search for "Team Results"
+3. Configure settings in the block settings panel
+
+### 6. Team Upcoming Games Block
+Displays upcoming fixtures for a selected team.
+
+**Block Name:** `lacrosse-match-centre/team-upcoming`
+
+**Settings:**
+- **Title**: Custom heading (default: "Team Upcoming Games")
+- **Competition ID**: Optional - leave empty to use scraped competition data
+- **Team Name**: Optional - leave empty to use Primary Team(s)
+- **Number of Games**: How many games to display (1-20, default: 5)
+
+**Usage:**
+1. Add a new block in the editor
+2. Search for "Team Upcoming Games"
+3. Configure settings in the block settings panel
+
 ## Adding Blocks to Your Site
 
 ### Using the Block Editor
@@ -95,6 +143,14 @@ The blocks come with professional styling out of the box:
 - Displays scores for both teams
 - Shows round number, date, and venue information
 
+### Results + Upcoming Block
+- Horizontal carousel for results and upcoming games
+- Auto-scrolls to the latest items on load
+
+### Team Blocks
+- Each Primary Team renders its own section
+- Carousel controls are scoped per team when multiple teams are selected
+
 ## Customizing Appearance
 
 ### Using Additional CSS
@@ -126,9 +182,12 @@ You can add custom CSS to further customize the blocks:
 
 The blocks use semantic CSS classes that can be targeted by your theme:
 - `.lmc-ladder-block`, `.lmc-upcoming-block`, `.lmc-results-block` - Main block containers
+- `.lmc-results-upcoming-block` - Combined results/upcoming block
+- `.lmc-team-results-block`, `.lmc-team-upcoming-block` - Team block containers
 - `.lmc-block-title` - Block title/heading
 - `.lmc-game`, `.lmc-result` - Individual game/result cards
 - `.lmc-no-data` - No data message styling
+- `.lmc-carousel`, `.lmc-carousel-btn` - Carousel elements
 
 ## Backwards Compatibility
 
@@ -178,6 +237,10 @@ The block editor shows a **live preview** of your blocks while editing, making i
    - Ensure the Competition ID is correct
    - Format: 0-{Association}-0-{Competition}-0
    - Example: 0-1064-0-646414-0
+
+3. **Cached Pages:**
+   - If blocks show "Unable to load data", hard refresh and clear any page cache
+   - Verify the page is not stripping the AJAX nonce from block updates
 
 ### Styling Issues
 
@@ -251,4 +314,4 @@ For issues, questions, or feature requests:
 ---
 
 **Version**: 1.0.0  
-**Last Updated**: January 2026
+**Last Updated**: February 2026

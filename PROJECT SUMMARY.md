@@ -23,10 +23,12 @@ An all-in-one WordPress plugin:
 
 ### WordPress Plugin Features
 - Reads and caches scraped data
-- Provides three widgets for displaying different aspects of the data
+- Provides widgets and Gutenberg blocks for displaying different aspects of the data
 - Includes admin interface for configuration and scraping
 - Uses caching for performance
 - Supports multiple competitions
+- Supports team-specific views with multi-team selection
+- Includes competition discovery via admin, WP-CLI, and script
 
 ## Key Features
 ✅ **Integrated Scraper** - Built-in PHP scraper, no external tools needed  
@@ -36,6 +38,9 @@ An all-in-one WordPress plugin:
 ✅ **Ladder Display** - Competition standings with points, wins, losses  
 ✅ **Upcoming Games** - Shows future matches with dates and venues  
 ✅ **Results Display** - Shows completed matches with scores  
+✅ **Blocks + Widgets** - Gutenberg blocks alongside classic widgets  
+✅ **Team Blocks** - Team Results and Team Upcoming with multi-team sections  
+✅ **Competition Discovery** - Find GameDay competition IDs automatically  
 ✅ **Responsive Design** - Works on desktop, tablet, and mobile  
 ✅ **Easy Configuration** - Admin panel for settings, including manual data collection and scraping interval, and competition selection.  
 ✅ **Performance Optimized** - Built-in caching system  
@@ -50,9 +55,12 @@ An all-in-one WordPress plugin:
 - WordPress HTTP API
 - DOMDocument & XPath for HTML parsing
 - CSS3
+- JavaScript (Gutenberg blocks + frontend block helpers)
 - WordPress Widgets API
+- WordPress Block API
 - WordPress Transient API (caching)
 - WordPress Settings API
+- WP-CLI (optional)
 
 ## Maintenance
 
@@ -130,11 +138,14 @@ An all-in-one WordPress plugin:
 ### User Documentation
 - **README.md** - Complete guide
 - **INSTALL.md** - Quick installation
+- **BLOCKS-GUIDE.md** - Gutenberg blocks overview
 - **TESTING.md** - Testing procedures
 - **DEPLOYMENT.md** - Various deployment scenarios
 
 ### Technical Documentation
 - **FEATURES.md** - Feature details
+- **COMPETITION-DISCOVERY.md** - Competition ID discovery
+- **TEAM-SELECTION-FEATURE.md** - Team selection and team blocks
 - Inline code comments
 - Example data files
 - Setup helper scripts

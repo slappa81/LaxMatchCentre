@@ -38,7 +38,7 @@
 1. Go to **Settings → Match Centre** in WordPress admin
 2. Click **Add Competition**
 3. Fill in the details:
-   - **Competition ID**: Find this in the GameDay URL (e.g., `140768`)
+   - **Competition ID**: Find this in the GameDay URL (e.g., `0-1064-0-646414-0`)
    - **Competition Name**: E.g., "Men's Division 1"
    - **Current Round**: The current round number (e.g., `8`)
    - **Max Rounds**: Total rounds in the season (e.g., `18`)
@@ -73,10 +73,11 @@ To find your GameDay competition ID:
 2. Navigate to your competition/league
 3. Look at the URL in your browser
 4. The competition ID is in the URL after `c=`
+   - Format: `0-<Association>-0-<Competition>-0`
    
-   Example: `https://www.sportstg.com/comp_ladder.cgi?c=140768&round=8`
+   Example: `https://websites.mygameday.app/comp_info.cgi?c=0-1064-0-646414-0`
    
-   Competition ID = `140768`
+   Competition ID = `0-1064-0-646414-0`
 
 ## Verifying Installation
 

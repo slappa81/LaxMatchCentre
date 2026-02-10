@@ -11,19 +11,19 @@ For detailed instructions, see: [MyGameDay Help - Match Centre IDs](https://help
 Competition IDs must be in the following format:
 
 ```
-0-<Association>-<Competition>-0
+0-<Association>-0-<Competition>-0
 ```
 
 ### Components
 
-1. **Association ID**: A hyphenated number identifying your association (e.g., `1064-96359`)
+1. **Association ID**: The association number (e.g., `1064`)
 2. **Competition ID**: The specific competition number (e.g., `646414`)
 
 ### Example
 
-- Association: `1064-96359`
+- Association: `1064`
 - Competition: `646414`
-- **Full Competition ID**: `0-1064-96359-646414-0`
+- **Full Competition ID**: `0-1064-0-646414-0`
 
 ## Finding Your Competition ID
 
@@ -35,10 +35,10 @@ Competition IDs must be in the following format:
 
 Example URL:
 ```
-https://websites.mygameday.app/comp_ladder.cgi?c=0-1064-96359-646414-0&round=1
+https://websites.mygameday.app/comp_info.cgi?c=0-1064-0-646414-0
 ```
 
-The Competition ID is: `0-1064-96359-646414-0`
+The Competition ID is: `0-1064-0-646414-0`
 
 ## API Endpoints Used
 
@@ -185,6 +185,24 @@ Success: Found 2 competition(s).
 ```
 
 The current competition (if set) will be marked with "(current)" after the name.
+
+### Discover Available Competitions
+
+List competitions for an association, optionally filtered by season ID:
+
+```bash
+wp lmc list-available-competitions <association-id> [--season=<season-id>]
+```
+
+Example:
+```bash
+wp lmc list-available-competitions 1064 --season=2024
+```
+
+If you are unsure about season IDs, use the admin discovery flow:
+1. Settings → Match Centre
+2. Load Seasons
+3. Discover Competitions
 
 ### Get Competition Details
 

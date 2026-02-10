@@ -19,9 +19,9 @@ The Lacrosse Match Centre plugin displays live competition data from GameDay on 
    - Add your competition details
    - Click **Scrape Data** to fetch latest information
 
-3. **Add Widgets**
-   - Go to **Appearance → Widgets**
-   - Add desired widgets to your sidebar or footer
+3. **Add Widgets or Blocks**
+   - Go to **Appearance → Widgets** for classic widgets
+   - Or add blocks in the Gutenberg editor
 
 ## Using the Admin Interface
 
@@ -47,6 +47,14 @@ Access: **Settings → Match Centre**
 5. Set Max Rounds (total rounds in season)
 6. Select as current competition
 7. Click **Save Settings**
+
+**Discover Competitions (Optional)**
+- Use the **Discover Competitions** panel to list all available competitions
+- Select a season, then click **Use This** to add a competition automatically
+
+**Primary Team(s) (Optional)**
+- Click **Load Teams** after scraping
+- Select one or more **Primary Team(s)** for team-specific blocks
 
 **Edit Competition**
 - Modify any field
@@ -124,6 +132,28 @@ After scraping, the admin panel shows:
 - Teams and scores
 - Venue
 - Reverse chronological order (newest first)
+
+## Using Blocks
+
+Blocks are available in the Gutenberg editor for the same data as widgets.
+
+### Available Blocks
+- Ladder
+- Upcoming Games
+- Match Results
+- Results + Upcoming (carousel)
+- Team Results
+- Team Upcoming Games
+
+### Block Settings
+- **Title**: Custom heading
+- **Competition ID**: Optional, defaults to current competition
+- **Limits**: Results/upcoming count (1-20)
+- **Team Name**: Optional override for team blocks
+
+### Team Blocks Behavior
+- If no team name is specified, the block renders a section for each Primary Team
+- If multiple Primary Teams are selected, each section gets its own carousel controls
 
 ## Updating Data
 
@@ -275,9 +305,9 @@ The plugin includes responsive CSS. To customize:
 
 Find it in GameDay URL:
 ```
-https://www.sportstg.com/comp_ladder.cgi?c=140768
-                                           ^^^^^^
-                                        This is it!
+https://websites.mygameday.app/comp_info.cgi?c=0-1064-0-646414-0
+                                                  ^^^^^^^^^^^^^^^
+                                               This is it!
 ```
 
 ### Round Updates

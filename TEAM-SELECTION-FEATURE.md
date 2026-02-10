@@ -6,13 +6,14 @@ This feature extends the Lacrosse Match Centre plugin with the ability to select
 ## What's New
 
 ### 1. Admin Interface Enhancements
-- **Primary Team Selection**: Each competition now has a "Primary Team(s)" selector in the admin settings
+- **Primary Team Selection**: Each competition now has a "Primary Team(s)" selector in the admin settings (multi-select)
 - **Team Discovery Button**: After scraping competition data, click "Load Teams" to populate the team list
 - **Automatic Team Loading**: Teams are automatically loaded from fixture data if available
 
 ### 2. New Data Methods
 Added to `class-lmc-data.php`:
 - `get_primary_team($comp_id)` - Retrieves the primary team for a competition
+- `get_primary_teams($comp_id)` - Retrieves all primary teams for a competition
 - `get_teams_list($comp_id)` - Extracts all unique teams from fixture data
 - `get_team_results($comp_id, $team_name, $limit)` - Gets results filtered by team (home or away)
 - `get_team_upcoming($comp_id, $team_name, $limit)` - Gets upcoming games filtered by team (home or away)
@@ -152,4 +153,3 @@ New AJAX action: `lmc_get_teams`
 - Head-to-head comparison blocks
 - Team ladder position widget
 - Auto-update team list when scraping
-- Multi-team selection support

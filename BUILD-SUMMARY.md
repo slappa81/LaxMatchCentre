@@ -15,21 +15,29 @@ lacrosse-match-centre/
 │   ├── class-lmc-scraper.php          [Scraper class - 396 lines]
 │   ├── class-lmc-data.php             [Data handler - 239 lines]
 │   ├── class-lmc-admin.php            [Admin interface - 361 lines]
+│   ├── class-lmc-blocks.php           [Block registration/rendering]
 │   ├── class-lmc-ladder-widget.php    [Ladder widget - 117 lines]
 │   ├── class-lmc-upcoming-widget.php  [Upcoming widget - 141 lines]
-│   └── class-lmc-results-widget.php   [Results widget - 138 lines]
+│   ├── class-lmc-results-widget.php   [Results widget - 138 lines]
+│   └── class-lmc-cli.php              [WP-CLI commands]
 ├── assets/
-│   └── style.css                      [Responsive styling - 285 lines]
+│   ├── style.css                      [Responsive styling - 285 lines]
+│   ├── blocks.js                      [Block editor scripts]
+│   ├── blocks.css                     [Block styling]
+│   └── blocks-frontend.js             [Frontend block updates]
 ├── data/
 │   └── README.txt                     [Data directory info]
 ├── README.md                          [Complete plugin documentation]
 ├── INSTALL.md                         [Installation guide]
 ├── USER-GUIDE.md                      [User documentation]
+├── BLOCKS-GUIDE.md                    [Gutenberg block guide]
+├── COMPETITION-DISCOVERY.md           [Competition discovery]
+├── API-REFERENCE.md                   [API + WP-CLI reference]
 ├── CHANGELOG.md                       [Version history]
 └── LICENSE                            [MIT License]
 ```
 
-**Total Lines of Code**: ~1,800+ lines
+**Total Lines of Code**: Updated since initial build (includes blocks, discovery tools, and team features)
 
 ---
 
@@ -78,6 +86,8 @@ lacrosse-match-centre/
 - Nonce security
 - Capability checks
 - Input sanitization
+- Primary team selection (multi-team)
+- Competition discovery UI (season-aware)
 
 ### 5. Widget Classes
 
@@ -108,6 +118,16 @@ lacrosse-match-centre/
 - Card-based game/result layouts
 - Hover effects
 - Accessible color schemes
+
+### 7. Blocks + Frontend Helpers
+- Gutenberg blocks for ladder, results, upcoming, team results, team upcoming, and results+upcoming
+- Frontend carousel behavior for results/upcoming
+- Competition switch handling (anchors + block restore)
+- Fallback error messaging on cached pages
+
+### 8. WP-CLI + Discovery
+- `lmc list-available-competitions` command
+- Standalone discovery script (root `list-competitions.php`)
 
 ---
 
@@ -140,6 +160,11 @@ lacrosse-match-centre/
 - Best practices
 - FAQ section
 
+### BLOCKS-GUIDE.md
+- Block catalog and configuration
+- Team blocks usage and multi-team behavior
+- Styling reference
+
 ### CHANGELOG.md
 - Version history (1.0.0 release)
 - Planned features
@@ -171,12 +196,17 @@ lacrosse-match-centre/
 - Data status display
 - Cache management
 - Competition selection
+- Competition discovery (admin, WP-CLI, script)
+- Primary team selection for team blocks
 
 ### Display Features ✅
 - Three WordPress widgets
 - Competition ladder table
 - Upcoming games list
 - Recent results display
+- Gutenberg blocks (ladder, results, upcoming, team results, team upcoming, results+upcoming)
+- Multi-team sections for team blocks
+- Results/upcoming carousel ordering with auto-scroll
 - Responsive design
 - Mobile-friendly
 - Dark mode support
@@ -221,10 +251,12 @@ lacrosse-match-centre/
 
 ### APIs Used
 - ✅ Widgets API - Custom widget registration
+- ✅ Block API - Gutenberg block registration
 - ✅ Settings API - Admin settings page
 - ✅ Transient API - Data caching
 - ✅ HTTP API - External requests
 - ✅ Options API - Settings storage
+- ✅ WP-CLI - Command-line tooling
 
 ### Hooks Implemented
 - `plugins_loaded` - Plugin initialization
@@ -245,7 +277,7 @@ The plugin is now ready to:
 1. **Install** on a WordPress site
 2. **Configure** via admin panel
 3. **Scrape** data from GameDay
-4. **Display** via widgets
+4. **Display** via widgets or blocks
 5. **Deploy** to production
 
 ---
@@ -272,9 +304,9 @@ The plugin is now ready to:
    - Add competition
    - Scrape data
 
-5. **Add Widgets**
+5. **Add Widgets or Blocks**
    - Appearance → Widgets
-   - Add LMC widgets
+   - Or use the block editor
 
 ### Optional Enhancements:
 - Set up WordPress Cron for auto-updates
@@ -301,10 +333,10 @@ The plugin is now ready to:
 The Lacrosse Match Centre WordPress plugin is fully built and ready for use!
 
 **Version**: 1.0.0  
-**Build Date**: January 16, 2026  
+**Build Date**: February 10, 2026  
 **Build Status**: ✅ SUCCESS  
-**Total Files**: 13  
-**Total Lines**: ~1,800+  
+**Total Files**: Updated  
+**Total Lines**: Updated  
 
 ---
 
