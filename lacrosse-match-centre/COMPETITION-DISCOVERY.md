@@ -10,11 +10,10 @@ This plugin now includes functionality to automatically discover all available c
 1. Go to **Settings → Match Centre** in WordPress admin
 2. Find the "🔍 Discover Competitions" section at the top
 3. Enter your **Association ID** (e.g., `1064` for Lacrosse Victoria)
-4. Click **Load Seasons** and choose the season
-5. Click **Discover Competitions**
-6. Browse the list of available competitions
-7. Click **Use This** next to any competition to add it automatically
-8. Click **Save Settings** to save your changes
+4. Click **Discover Competitions**
+5. Browse the list of available competitions
+6. Click **Use This** next to any competition to add it automatically
+7. Click **Save Settings** to save your changes
 
 **Benefits:**
 - No command line needed

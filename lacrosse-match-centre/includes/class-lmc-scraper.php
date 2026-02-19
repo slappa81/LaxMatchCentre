@@ -1020,21 +1020,59 @@ class LMC_Scraper {
         
         // Find season selector: <select name="seasonID">
         $select = $xpath->query("//select[@name='seasonID']");
+        $seen_ids = array();
         
         if ($select->length > 0) {
             $options = $xpath->query(".//option", $select->item(0));
             
             foreach ($options as $option) {
-                $value = $option->getAttribute('value');
+                $raw_value = trim($option->getAttribute('value'));
                 $name = trim($option->textContent);
                 
-                // Extract season ID from URL
-                if (preg_match('/seasonID=(\d+)/', $value, $matches)) {
-                    $seasons[] = array(
-                        'id' => $matches[1],
-                        'name' => $name
-                    );
+                if ($raw_value === '') {
+                    continue;
                 }
+                
+                $season_id = null;
+                
+                // Allow both plain numeric IDs and query string/URL values
+                if (preg_match('/seasonID=(\d+)/i', $raw_value, $matches)) {
+                    $season_id = $matches[1];
+                } elseif (preg_match('/^\d+$/', $raw_value)) {
+                    $season_id = $raw_value;
+                } else {
+                    $query_string = '';
+                    if (strpos($raw_value, '?') !== false) {
+                        $query_string = substr($raw_value, strpos($raw_value, '?') + 1);
+                    } elseif (strpos($raw_value, '=') !== false) {
+                        $query_string = $raw_value;
+                    }
+                    if ($query_string !== '') {
+                        $params = array();
+                        parse_str($query_string, $params);
+                        if (isset($params['seasonID']) && ctype_digit((string) $params['seasonID'])) {
+                            $season_id = (string) $params['seasonID'];
+                        }
+                    }
+                }
+                
+                if (!$season_id) {
+                    continue;
+                }
+                
+                if (isset($seen_ids[$season_id])) {
+                    continue;
+                }
+                $seen_ids[$season_id] = true;
+                
+                if ($name === '') {
+                    $name = 'Season ' . $season_id;
+                }
+                
+                $seasons[] = array(
+                    'id' => $season_id,
+                    'name' => $name
+                );
             }
         }
         

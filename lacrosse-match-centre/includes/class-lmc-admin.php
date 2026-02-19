@@ -236,489 +236,26 @@ class LMC_Admin {
         $get_teams_nonce = wp_create_nonce('lmc_get_teams_nonce');
         $admin_nonce = wp_create_nonce('lmc-admin-nonce');
         
-        $inline_script = <<<JAVASCRIPT
-            jQuery(document).ready(function($) {
-                // Remove competition
-                $(document).on('click', '.lmc-remove-competition', function() {
-                    $(this).closest('.lmc-competition-row').remove();
-                });
-                
-                // Scrape competition
-                $(document).on('click', '.lmc-scrape-btn', function() {
-                    var btn = $(this);
-                    var row = btn.closest('.lmc-competition-row');
-                    
-                    // Try to get from visible inputs first (new competitions)
-                    var compId = row.find('.comp-id').val();
-                    var compName = row.find('.comp-name').val();
-                    
-                    // If not found, try hidden inputs (saved competitions)
-                    if (!compId) {
-                        compId = row.find('input[name*="[id]"]').val();
-                    }
-                    if (!compName) {
-                        compName = row.find('input[name*="[name]"]').val();
-                    }
-                    
-                    var statusDiv = row.find('.scrape-status');
-                    
-                    if (!compId || !compName) {
-                        alert('Please fill in Competition ID and Name before scraping.');
-                        return;
-                    }
-                    
-                    btn.prop('disabled', true).text('Scraping...');
-                    statusDiv.html('<span style=\"color: blue;\">⏳ Scraping data (auto-detecting rounds)...</span>');
-                    
-                    $.ajax({
-                        url: ajaxurl,
-                        type: 'POST',
-                        timeout: 300000, // 5 minutes timeout (scraping can take time)
-                        data: {
-                            action: 'lmc_scrape_competition',
-                            nonce: '{$scraper_nonce}',
-                            comp_id: compId,
-                            comp_name: compName
-                        },
-                        success: function(response) {
-                            console.log('LMC Scraper Response:', response);
-                            if (response.success) {
-                                statusDiv.html('<span style=\"color: green;\">✓ ' + response.data.message + '</span>');
-                            } else {
-                                var errorMsg = 'Scraping failed';
-                                if (response.data && response.data.message) {
-                                    errorMsg = response.data.message;
-                                } else if (response.message) {
-                                    errorMsg = response.message;
-                                }
-                                console.error('LMC Scraper Error:', errorMsg, response);
-                                statusDiv.html('<span style=\"color: red;\">✗ ' + errorMsg + '</span>');
-                            }
-                            btn.prop('disabled', false).text('Scrape Data');
-                        },
-                        error: function(xhr, status, error) {
-                            console.error('LMC Scraper AJAX Error:', status, error, xhr.responseText);
-                            var errorMsg = 'Error occurred';
-                            if (status === 'timeout') {
-                                errorMsg = 'Request timed out (scraping may still be running - check logs)';
-                            } else if (xhr.responseText) {
-                                try {
-                                    var response = JSON.parse(xhr.responseText);
-                                    if (response.data && response.data.message) {
-                                        errorMsg = response.data.message;
-                                    }
-                                } catch(e) {
-                                    errorMsg = 'Error: ' + error;
-                                }
-                            }
-                            statusDiv.html('<span style=\"color: red;\">✗ ' + errorMsg + '</span>');
-                            btn.prop('disabled', false).text('Scrape Data');
-                        }
-                    });
-                });
-                
-                // Clear cache
-                $('#lmc-clear-cache').on('click', function() {
-                    var btn = $(this);
-                    
-                    if (!confirm('Are you sure you want to clear all cached data?')) {
-                        return;
-                    }
-                    
-                    btn.prop('disabled', true).text('Clearing...');
-                    
-                    $.ajax({
-                        url: ajaxurl,
-                        type: 'POST',
-                        data: {
-                            action: 'lmc_clear_cache',
-                            nonce: '{$cache_nonce}'
-                        },
-                        success: function(response) {
-                            if (response.success) {
-                                alert('Cache cleared successfully!');
-                            } else {
-                                alert('Error: ' + response.data.message);
-                            }
-                            btn.prop('disabled', false).text('Clear Cache');
-                        },
-                        error: function() {
-                            alert('Error occurred while clearing cache.');
-                            btn.prop('disabled', false).text('Clear Cache');
-                        }
-                    });
-                });
-                
-                // Step 1: Discover seasons
-                $('#lmc-discover-seasons-btn').on('click', function() {
-                    var btn = $(this);
-                    var associationId = $('#lmc-discover-association-id').val().trim();
-                    var statusDiv = $('#lmc-discover-status');
-                    var seasonsDiv = $('#lmc-seasons-selection');
-                    var resultsDiv = $('#lmc-discover-results');
-                    
-                    if (!associationId) {
-                        statusDiv.html('<span style=\"color: red;\">⚠️ Please enter an Association ID</span>');
-                        return;
-                    }
-                    
-                    btn.prop('disabled', true).text('Loading Seasons...');
-                    statusDiv.html('<span style=\"color: blue;\">🔍 Fetching seasons from GameDay...</span>');
-                    seasonsDiv.html('');
-                    resultsDiv.html('');
-                    
-                    $.ajax({
-                        url: ajaxurl,
-                        type: 'POST',
-                        timeout: 30000,
-                        data: {
-                            action: 'lmc_list_seasons',
-                            nonce: '{$list_competitions_nonce}',
-                            association_id: associationId
-                        },
-                        success: function(response) {
-                            console.log('Season load success:', response);
-                            btn.prop('disabled', false).text('Load Seasons');
-                            
-                            if (response.success && response.data.seasons) {
-                                var seasons = response.data.seasons;
-                                statusDiv.html('<span style=\"color: green;\">✓ Found ' + seasons.length + ' seasons. Select a season below:</span>');
-                                
-                                var html = '<div style=\"margin: 15px 0;\">';
-                                html += '<select id=\"lmc-season-select\" class=\"regular-text\" style=\"margin-right: 10px;\">';
-                                html += '<option value=\"\">-- Select a Season --</option>';
-                                seasons.forEach(function(season) {
-                                    html += '<option value=\"' + season.id + '\">' + season.name + '</option>';
-                                });
-                                html += '</select>';
-                                html += '<button type=\"button\" id=\"lmc-load-competitions-btn\" class=\"button\">Load Competitions</button>';
-                                html += '</div>';
-                                
-                                seasonsDiv.html(html);
-                            } else {
-                                statusDiv.html('<span style=\"color: red;\">✗ ' + (response.data ? response.data.message : 'No seasons found') + '</span>');
-                            }
-                        },
-                        error: function(xhr, status, error) {
-                            console.log('Season load error:', xhr, status, error);
-                            console.log('Response text:', xhr.responseText);
-                            btn.prop('disabled', false).text('Load Seasons');
-                            statusDiv.html('<span style=\"color: red;\">✗ Request failed</span>');
-                        }
-                    });
-                });
-                
-                // Step 2: Load competitions for selected season
-                $(document).on('click', '#lmc-load-competitions-btn', function() {
-                    var btn = $(this);
-                    var associationId = $('#lmc-discover-association-id').val().trim();
-                    var seasonId = $('#lmc-season-select').val();
-                    var seasonName = $('#lmc-season-select option:selected').text();
-                    var statusDiv = $('#lmc-discover-status');
-                    var resultsDiv = $('#lmc-discover-results');
-                    
-                    if (!seasonId) {
-                        statusDiv.html('<span style=\"color: red;\">⚠️ Please select a season</span>');
-                        return;
-                    }
-                    
-                    btn.prop('disabled', true).text('Loading...');
-                    statusDiv.html('<span style=\"color: blue;\">🔍 Fetching competitions for selected season...</span>');
-                    resultsDiv.html('');
-                    
-                    $.ajax({
-                        url: ajaxurl,
-                        type: 'POST',
-                        timeout: 30000,
-                        data: {
-                            action: 'lmc_list_available_competitions',
-                            nonce: '{$list_competitions_nonce}',
-                            association_id: associationId,
-                            season_id: seasonId,
-                            season_name: seasonName
-                        },
-                        success: function(response) {
-                            btn.prop('disabled', false).text('Load Competitions');
-                            
-                            if (response.success && response.data.competitions) {
-                                var comps = response.data.competitions;
-                                statusDiv.html('<span style=\"color: green;\">✓ Found ' + comps.length + ' competitions. Select competitions to scrape:</span>');
-                                
-                                var html = '<div style=\"margin-top: 15px; border: 1px solid #ccc; padding: 15px; background: #f9f9f9;\">';
-                                html += '<div style=\"margin-bottom: 10px;\">';
-                                html += '<button type=\"button\" id=\"lmc-select-all-comps\" class=\"button button-small\" style=\"margin-right: 5px;\">Select All</button>';
-                                html += '<button type=\"button\" id=\"lmc-deselect-all-comps\" class=\"button button-small\" style=\"margin-right: 5px;\">Deselect All</button>';
-                                html += '<button type=\"button\" id=\"lmc-add-selected-comps\" class=\"button button-primary\">Add Selected Competitions</button>';
-                                html += '</div>';
-                                html += '<div style=\"max-height: 400px; overflow-y: auto; background: white; padding: 10px; border: 1px solid #ddd;\">';
-                                
-                                comps.forEach(function(comp) {
-                                    html += '<div style=\"margin: 8px 0; padding: 8px; border-bottom: 1px solid #eee;\">';
-                                    html += '<label style=\"display: flex; align-items: center; cursor: pointer;\">';
-                                    html += '<input type="checkbox" class="lmc-comp-checkbox" data-id="' + comp.id + '" data-name="' + comp.name + '" data-season="' + seasonName + '" style="margin-right: 10px;">';
-                                    html += '<span style="flex: 1;"><strong>' + comp.name + '</strong></span>';
-                                    html += '<code style="font-size: 11px; color: #666;">' + comp.id + '</code>';
-                                    html += '</label>';
-                                    html += '</div>';
-                                });  
-                                
-                                html += '</div></div>';
-                                resultsDiv.html(html);
-                            } else {
-                                statusDiv.html('<span style=\"color: red;\">✗ ' + (response.data ? response.data.message : 'No competitions found') + '</span>');
-                            }
-                        },
-                        error: function(xhr, status, error) {
-                            btn.prop('disabled', false).text('Load Competitions');
-                            statusDiv.html('<span style=\"color: red;\">✗ Request failed</span>');
-                        }
-                    });
-                });
-                
-                // Select/deselect all checkboxes
-                $(document).on('click', '#lmc-select-all-comps', function() {
-                    $('.lmc-comp-checkbox').prop('checked', true);
-                });
-                
-                $(document).on('click', '#lmc-deselect-all-comps', function() {
-                    $('.lmc-comp-checkbox').prop('checked', false);
-                });
-                
-                // Add selected competitions to the configuration
-                $(document).on('click', '#lmc-add-selected-comps', function() {
-                    var checked = $('.lmc-comp-checkbox:checked');
-                    
-                    if (checked.length === 0) {
-                        alert('Please select at least one competition');
-                        return;
-                    }
-                    
-                    checked.each(function() {
-                        var compId = $(this).data('id');
-                        var compName = $(this).data('name');
-                        var seasonName = $(this).data('season');
-                        
-                        // Add a new competition row
-                        var template = $('#competition-template').html();
-                        var index = $('.lmc-competition-row').length;
-                        template = template.replace(/INDEX/g, index);
-                        $('#lmc-competitions-list').append(template);
-                        
-                        // Fill in the values with season prefix
-                        var newRow = $('.lmc-competition-row').last();
-                        newRow.find('.comp-id').val(compId);
-                        newRow.find('.comp-name').val(seasonName + ' - ' + compName);
-                        newRow.find('.comp-season').val(seasonName);
-                    });
-                    
-                    // Clear the discovery results
-                    $('#lmc-discover-results').html('');
-                    $('#lmc-discover-status').html('<span style=\"color: green;\">✓ Added ' + checked.length + ' competitions to configuration</span>');
-                });
-                
-                // Old "Use This" button handler (kept for backwards compatibility if needed)
-                $(document).on('click', '.lmc-use-competition', function() {
-                    var compId = $(this).data('id');
-                    var compName = $(this).data('name');
-                    
-                    // Add a new competition row
-                    var template = $('#competition-template').html();
-                    var index = $('.lmc-competition-row').length;
-                    template = template.replace(/INDEX/g, index);
-                    $('#lmc-competitions-list').append(template);
-                    
-                    // Fill in the values
-                    var newRow = $('.lmc-competition-row').last();
-                    newRow.find('.comp-id').val(compId);
-                    newRow.find('.comp-name').val(compName);
-                    
-                    // Scroll to the new row
-                    $('html, body').animate({
-                        scrollTop: newRow.offset().top - 100
-                    }, 500);
-                    
-                    // Highlight the row briefly
-                    newRow.css('background-color', '#ffffcc');
-                    setTimeout(function() {
-                        newRow.css('background-color', '#fff');
-                    }, 2000);
-                    
-                    alert('Competition added! Remember to save your settings.');
-                });
-                
-                // Get teams for competition
-                $(document).on('click', '.lmc-get-teams-btn', function() {
-                    var btn = $(this);
-                    var row = btn.closest('.lmc-competition-row');
-                    var compId = row.find('.comp-id').val() || row.find('input[type=\"hidden\"][name*=\"[id]\"]').val();
-                    var teamSelect = row.find('.lmc-team-select');
-                    var teamStatus = row.find('.lmc-team-status');
-                    
-                    if (!compId) {
-                        alert('Competition ID not found');
-                        return;
-                    }
-                    
-                    btn.prop('disabled', true).text('Loading Teams...');
-                    teamStatus.html('<span style=\"color: blue;\">⏳ Fetching teams...</span>');
-                    
-                    $.ajax({
-                        url: ajaxurl,
-                        type: 'POST',
-                        data: {
-                            action: 'lmc_get_teams',
-                            nonce: '{$get_teams_nonce}',
-                            comp_id: compId
-                        },
-                        success: function(response) {
-                            if (response.success && response.data.teams) {
-                                // Populate select dropdown
-                                teamSelect.empty();
-                                teamSelect.append('<option value=\"\">-- Select Primary Team --</option>');
-                                response.data.teams.forEach(function(team) {
-                                    teamSelect.append('<option value=\"' + team + '\">' + team + '</option>');
-                                });
-                                teamSelect.show();
-                                teamStatus.html('<span style=\"color: green;\">✓ Found ' + response.data.teams.length + ' teams</span>');
-                            $.ajax({
-                                teamStatus.html('<span style=\"color: red;\">✗ ' + (response.data ? response.data.message : 'No teams found') + '</span>');
-                            }
-                            btn.prop('disabled', false).text('Refresh Teams');
-                        },
-                        error: function() {
-                            teamStatus.html('<span style=\"color: red;\">✗ Error fetching teams</span>');
-                            btn.prop('disabled', false).text('Refresh Teams');
-                        }
-                    });
-                                        var selectedTeams = teamSelect.val() || [];
-                                        if (!Array.isArray(selectedTeams)) {
-                                            selectedTeams = selectedTeams ? [selectedTeams] : [];
-                                        }
-
-                });
-                
-                                        teamSelect.append('<option value="">-- Select Primary Team(s) --</option>');
-                $(document).on('click', '.lmc-upload-logo-btn', function() {
-                                            var isSelected = selectedTeams.indexOf(team) !== -1;
-                                            var selectedAttr = isSelected ? ' selected="selected"' : '';
-                                            teamSelect.append('<option value="' + team + '"' + selectedAttr + '>' + team + '</option>');
-                    var teamKey = btn.data('team');
-                    var teamName = btn.data('team-name');
-                    var tr = btn.closest('tr');
-                    
-                    // Use WordPress media uploader
-                    var frame = wp.media({
-                        title: 'Select Team Logo for ' + teamName,
-                        button: {
-                            text: 'Use this image'
-                        },
-                        multiple: false,
-                        library: {
-                            type: 'image'
-                        }
-                    });
-                    
-                    frame.on('select', function() {
-                        var attachment = frame.state().get('selection').first().toJSON();
-                        var imageUrl = attachment.url;
-                        
-                        // Update via AJAX
-                        $.ajax({
-                            url: ajaxurl,
-                            type: 'POST',
-                            data: {
-                                action: 'lmc_upload_team_logo',
-                                nonce: '{$admin_nonce}',
-                                team: teamKey,
-                                image_url: imageUrl
-                            },
-                            success: function(response) {
-                                if (response.success) {
-                                    location.reload();
-                                } else {
-                                    alert('Error: ' + (response.data || 'Unknown error'));
-                                }
-                            },
-                            error: function() {
-                                alert('Error uploading logo');
-                            }
-                        });
-                    });
-                    
-                    frame.open();
-                });
-                
-                // Delete custom team logo
-                $(document).on('click', '.lmc-delete-logo-btn', function() {
-                    var btn = $(this);
-                    var teamKey = btn.data('team');
-                    
-                    if (!confirm('Remove custom logo and use the scraped one?')) {
-                        return;
-                    }
-                    
-                    $.ajax({
-                        url: ajaxurl,
-                        type: 'POST',
-                        data: {
-                            action: 'lmc_delete_team_logo',
-                            nonce: '{$admin_nonce}',
-                            team: teamKey
-                        },
-                        success: function(response) {
-                            if (response.success) {
-                                location.reload();
-                            } else {
-                                alert('Error: ' + (response.data || 'Unknown error'));
-                            }
-                        },
-                        error: function() {
-                            alert('Error deleting logo');
-                        }
-                    });
-                });
-                
-                // Clear all cached logos
-                $('#lmc-clear-cached-logos').on('click', function() {
-                    var btn = $(this);
-                    var statusSpan = $('#lmc-clear-logos-status');
-                    
-                    if (!confirm('This will delete all locally cached team logos. They will be re-downloaded on the next scrape. Continue?')) {
-                        return;
-                    }
-                    
-                    btn.prop('disabled', true).text('Clearing...');
-                    statusSpan.html('<span style="color: blue;">⏳ Clearing cached logos...</span>');
-                    
-                    $.ajax({
-                        url: ajaxurl,
-                        type: 'POST',
-                        data: {
-                            action: 'lmc_clear_cached_logos',
-                            nonce: '{$admin_nonce}'
-                        },
-                        success: function(response) {
-                            btn.prop('disabled', false).text('Clear All Cached Logos');
-                            if (response.success) {
-                                statusSpan.html('<span style="color: green;">✓ Cached logos cleared successfully</span>');
-                                setTimeout(function() {
-                                    location.reload();
-                                }, 1500);
-                            } else {
-                                statusSpan.html('<span style="color: red;">✗ Error: ' + (response.data || 'Unknown error') + '</span>');
-                            }
-                        },
-                        error: function() {
-                            btn.prop('disabled', false).text('Clear All Cached Logos');
-                            statusSpan.html('<span style="color: red;">✗ Request failed</span>');
-                        }
-                    });
-                });
-            });
-JAVASCRIPT;
+        wp_enqueue_script(
+            'lmc-admin',
+            LMC_PLUGIN_URL . 'assets/lmc-admin.js',
+            array('jquery'),
+            LMC_VERSION,
+            true
+        );
+        
+        wp_localize_script('lmc-admin', 'lmcAdminData', array(
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonces' => array(
+                'scrape' => $scraper_nonce,
+                'cache' => $cache_nonce,
+                'listCompetitions' => $list_competitions_nonce,
+                'teams' => $get_teams_nonce,
+                'admin' => $admin_nonce
+            )
+        ));
         
         wp_enqueue_media();
-        wp_add_inline_script('jquery', $inline_script);
         
         wp_add_inline_style('wp-admin', "
             .lmc-competition-row {
@@ -1040,7 +577,7 @@ JAVASCRIPT;
                 <p>Find these in your GameDay website URL. See <a href="https://helpdesk.mygameday.app/help/adding-and-changing-the-match-centre-ids" target="_blank">MyGameDay Help</a> for details.</p>
                 
                 <div style="background: #f0f0f1; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
-                    <h3 style="margin-top: 0;">🔍 Discover Competitions</h3>
+                    <h3 style="margin-top: 0;">≡ƒöì Discover Competitions</h3>
                     <p>Enter your Association ID and select a season to see all available competitions from GameDay:</p>
                     <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px;">
                         <input type="text" id="lmc-discover-association-id" value="1064" placeholder="e.g., 1064" class="regular-text" style="max-width: 200px;">
@@ -1112,9 +649,9 @@ JAVASCRIPT;
                             <strong>Data Status:</strong><br>
                             <?php foreach ($data_info['files'] as $type => $file_info): ?>
                                 <?php if ($file_info['exists']): ?>
-                                    ✓ <?php echo ucfirst($type); ?>: Last updated <?php echo human_time_diff($file_info['modified'], current_time('timestamp', true)); ?> ago<br>
+                                    Γ£ô <?php echo ucfirst($type); ?>: Last updated <?php echo human_time_diff($file_info['modified'], current_time('timestamp', true)); ?> ago<br>
                                 <?php else: ?>
-                                    ✗ <?php echo ucfirst($type); ?>: Not available<br>
+                                    Γ£ù <?php echo ucfirst($type); ?>: Not available<br>
                                 <?php endif; ?>
                             <?php endforeach; ?>
                         </div>
@@ -1166,11 +703,11 @@ JAVASCRIPT;
                     $next_run = wp_next_scheduled('lmc_hourly_scrape');
                     if ($next_run) {
                         $time_until = human_time_diff(time(), $next_run);
-                        echo '<p><strong>Status:</strong> ✓ Enabled - runs every 60 minutes</p>';
+                        echo '<p><strong>Status:</strong> Γ£ô Enabled - runs every 60 minutes</p>';
                         echo '<p><strong>Next Run:</strong> In ' . esc_html($time_until) . ' (' . esc_html(wp_date(get_option('date_format') . ' ' . get_option('time_format'), $next_run)) . ')</p>';
                         echo '<p style="color: #666; font-size: 0.9em;">All configured competitions will be automatically scraped every hour.</p>';
                     } else {
-                        echo '<p style="color: #d63638;"><strong>Status:</strong> ✗ Not scheduled</p>';
+                        echo '<p style="color: #d63638;"><strong>Status:</strong> Γ£ù Not scheduled</p>';
                         echo '<p>Deactivate and reactivate the plugin to enable automatic scraping.</p>';
                     }
                     ?>

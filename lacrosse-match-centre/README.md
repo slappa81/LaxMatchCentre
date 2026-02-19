@@ -9,10 +9,6 @@ A complete WordPress plugin for displaying lacrosse league data from GameDay wit
 - **🏆 Recent Results** - Display completed games with scores
 - **🔄 Integrated Scraper** - Built-in PHP scraper fetches data directly from GameDay
 - **⚡ Data Caching** - Efficient WordPress Transient caching
-- **🧩 Blocks + Widgets** - Gutenberg blocks and classic widgets
-- **🧑‍🤝‍🧑 Team Blocks** - Team Results and Team Upcoming with multi-team sections
-- **🧭 Competition Discovery** - Find competition IDs from GameDay automatically
-- **🎠 Results Carousel** - Results/upcoming blocks auto-scroll to latest
 - **🎨 Responsive Design** - Mobile-friendly widgets
 - **⚙️ Easy Configuration** - Simple admin settings page
 - **🏅 Multiple Competitions** - Support for multiple competitions
@@ -55,12 +51,6 @@ See [INSTALL.md](INSTALL.md) for detailed installation instructions.
 2. Wait 30-60 seconds for completion
 3. Check data status
 
-### 2b. (Optional) Configure Primary Teams
-
-1. Click **Load Teams** in the competition row
-2. Select one or more **Primary Team(s)**
-3. Click **Save Settings**
-
 ### 3. Add Widgets
 
 1. Go to **Appearance → Widgets**
@@ -70,21 +60,14 @@ See [INSTALL.md](INSTALL.md) for detailed installation instructions.
    - LMC: Recent Results
 3. Configure and save
 
-### 4. (Optional) Add Blocks
-
-1. Edit a page or post in the block editor
-2. Search for "Lacrosse" blocks
-3. Insert Ladder, Results, Upcoming, Team Results, Team Upcoming, or Results + Upcoming
-4. Configure block settings in the sidebar
-
 ## 🎯 Finding Competition ID
 
 Competition ID is in the GameDay URL:
 
 ```
-https://websites.mygameday.app/comp_info.cgi?c=0-1064-0-646414-0
-                                                                  ^^^^^^^^^^^^^^^
-                                                              Competition ID
+https://www.sportstg.com/comp_ladder.cgi?c=140768&round=8
+                                           ^^^^^^
+                                      Competition ID
 ```
 
 ## 🔌 Widget Configuration
@@ -129,22 +112,14 @@ lacrosse-match-centre/
 │   ├── class-lmc-scraper.php    # Scraper class
 │   ├── class-lmc-data.php       # Data handler
 │   ├── class-lmc-admin.php      # Admin interface
-│   ├── class-lmc-blocks.php     # Block registration/rendering
 │   ├── class-lmc-ladder-widget.php
 │   ├── class-lmc-upcoming-widget.php
-│   ├── class-lmc-results-widget.php
-│   └── class-lmc-cli.php        # WP-CLI commands
+│   └── class-lmc-results-widget.php
 ├── assets/
-│   ├── style.css                # Widget styles
-│   ├── blocks.js                # Block editor scripts
-│   ├── blocks.css               # Block styles
-│   └── blocks-frontend.js       # Frontend block helpers
+│   └── style.css                # Widget styles
 ├── data/                        # JSON data files (auto-created)
 ├── INSTALL.md
 ├── USER-GUIDE.md
-├── BLOCKS-GUIDE.md
-├── COMPETITION-DISCOVERY.md
-├── API-REFERENCE.md
 ├── CHANGELOG.md
 └── LICENSE
 ```
@@ -221,8 +196,6 @@ See [USER-GUIDE.md](USER-GUIDE.md) for setting up WordPress Cron or server cron 
 
 - **[INSTALL.md](INSTALL.md)** - Detailed installation instructions
 - **[USER-GUIDE.md](USER-GUIDE.md)** - Complete user documentation
-- **[BLOCKS-GUIDE.md](BLOCKS-GUIDE.md)** - Gutenberg blocks overview
-- **[COMPETITION-DISCOVERY.md](COMPETITION-DISCOVERY.md)** - Competition ID discovery
 - **[API-REFERENCE.md](API-REFERENCE.md)** - API documentation and WP-CLI commands
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history
 
@@ -233,9 +206,6 @@ For advanced users and developers, WP-CLI commands are available:
 ```bash
 # List all configured competitions
 wp lmc list-competitions
-
-# Discover competitions for an association (optional season)
-wp lmc list-available-competitions 1064 --season=2024
 
 # Get details about a specific competition
 wp lmc get-competition <competition-id>
@@ -300,6 +270,7 @@ For support:
 - WordPress Cron automation
 - REST API endpoints
 - Shortcode support
+- Gutenberg blocks
 - Player statistics
 - Advanced filtering
 
@@ -311,7 +282,7 @@ This plugin scrapes publicly available data from GameDay. The plugin author is n
 
 **Version**: 1.0.0  
 **Author**: Michael Kindred  
-**Last Updated**: February 10, 2026
+**Last Updated**: January 16, 2026
 
 ---
 
