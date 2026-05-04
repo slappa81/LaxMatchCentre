@@ -308,12 +308,12 @@
     }
     
     .lmc-ladder-table tbody tr:nth-child(even) {
-        background: #34383d;
+        background: #404650;
     }
     
     .lmc-ladder-table tbody tr:hover,
     .lmc-ladder-table tbody tr:nth-child(even):hover {
-        background: #444a50;
+        background: #505860;
     }
     
     .lmc-game,
