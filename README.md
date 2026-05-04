@@ -1,5 +1,5 @@
 # MatchCentre
-Lacrosse Club Match Centre
+Lacrosse Club Match Centre Wordpress Plugin
 
 A complete WordPress plugin for displaying lacrosse league data from GameDay. This plugin includes:
 - Built-in PHP scraper to fetch data directly from GameDay
