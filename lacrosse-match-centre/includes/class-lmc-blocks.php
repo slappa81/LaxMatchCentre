@@ -326,6 +326,110 @@ class LMC_Blocks {
         ));
         
         error_log('LMC Blocks: Team Upcoming block registered');
+
+        // Register Williamstown team results block
+        register_block_type('lacrosse-match-centre/williamstown-results', array(
+            'api_version' => 2,
+            'editor_script' => 'lacrosse-match-centre-blocks',
+            'editor_style' => 'lacrosse-match-centre-blocks-editor',
+            'style' => 'lacrosse-match-centre-blocks',
+            'attributes' => array(
+                'title' => array(
+                    'type' => 'string',
+                    'default' => 'Williamstown Team Results'
+                ),
+                'displayMode' => array(
+                    'type' => 'string',
+                    'default' => 'text',
+                    'enum' => array('text', 'image', 'both')
+                ),
+                'allowCompSync' => array(
+                    'type' => 'boolean',
+                    'default' => false
+                )
+            ),
+            'render_callback' => array($this, 'render_williamstown_results_block')
+        ));
+
+        error_log('LMC Blocks: Williamstown Results block registered');
+
+        // Register Williamstown team upcoming block
+        register_block_type('lacrosse-match-centre/williamstown-upcoming', array(
+            'api_version' => 2,
+            'editor_script' => 'lacrosse-match-centre-blocks',
+            'editor_style' => 'lacrosse-match-centre-blocks-editor',
+            'style' => 'lacrosse-match-centre-blocks',
+            'attributes' => array(
+                'title' => array(
+                    'type' => 'string',
+                    'default' => 'Williamstown Team Upcoming Fixtures'
+                ),
+                'displayMode' => array(
+                    'type' => 'string',
+                    'default' => 'text',
+                    'enum' => array('text', 'image', 'both')
+                ),
+                'allowCompSync' => array(
+                    'type' => 'boolean',
+                    'default' => false
+                )
+            ),
+            'render_callback' => array($this, 'render_williamstown_upcoming_block')
+        ));
+
+        error_log('LMC Blocks: Williamstown Upcoming block registered');
+
+        // Register Williamstown compact team results block
+        register_block_type('lacrosse-match-centre/williamstown-results-compact', array(
+            'api_version' => 2,
+            'editor_script' => 'lacrosse-match-centre-blocks',
+            'editor_style' => 'lacrosse-match-centre-blocks-editor',
+            'style' => 'lacrosse-match-centre-blocks',
+            'attributes' => array(
+                'title' => array(
+                    'type' => 'string',
+                    'default' => 'Williamstown Team Results (Compact)'
+                ),
+                'displayMode' => array(
+                    'type' => 'string',
+                    'default' => 'text',
+                    'enum' => array('text', 'image', 'both')
+                ),
+                'allowCompSync' => array(
+                    'type' => 'boolean',
+                    'default' => false
+                )
+            ),
+            'render_callback' => array($this, 'render_williamstown_results_compact_block')
+        ));
+
+        error_log('LMC Blocks: Williamstown Results Compact block registered');
+
+        // Register Williamstown compact team upcoming block
+        register_block_type('lacrosse-match-centre/williamstown-upcoming-compact', array(
+            'api_version' => 2,
+            'editor_script' => 'lacrosse-match-centre-blocks',
+            'editor_style' => 'lacrosse-match-centre-blocks-editor',
+            'style' => 'lacrosse-match-centre-blocks',
+            'attributes' => array(
+                'title' => array(
+                    'type' => 'string',
+                    'default' => 'Williamstown Team Upcoming Fixtures (Compact)'
+                ),
+                'displayMode' => array(
+                    'type' => 'string',
+                    'default' => 'text',
+                    'enum' => array('text', 'image', 'both')
+                ),
+                'allowCompSync' => array(
+                    'type' => 'boolean',
+                    'default' => false
+                )
+            ),
+            'render_callback' => array($this, 'render_williamstown_upcoming_compact_block')
+        ));
+
+        error_log('LMC Blocks: Williamstown Upcoming Compact block registered');
         error_log('LMC Blocks: All blocks registered successfully');
     }
     
@@ -795,6 +899,549 @@ class LMC_Blocks {
 
         return ob_get_clean();
     }
+
+    /**
+     * Get all primary team entries across configured competitions.
+     *
+     * @return array Array of entries with comp_id, comp_name, and team_name
+     */
+    private function get_primary_team_entries_all_competitions() {
+        $competitions = LMC_Data::get_all_competitions();
+        $entries = array();
+
+        if (empty($competitions)) {
+            return $entries;
+        }
+
+        foreach ($competitions as $competition) {
+            $comp_id = isset($competition['id']) ? $competition['id'] : '';
+            if (empty($comp_id)) {
+                continue;
+            }
+
+            $comp_name = isset($competition['name']) && !empty($competition['name']) ? $competition['name'] : $comp_id;
+            $team_names = LMC_Data::get_primary_teams($comp_id);
+
+            if (empty($team_names)) {
+                $fallback_team = LMC_Data::get_primary_team($comp_id);
+                if ($fallback_team) {
+                    $team_names = array($fallback_team);
+                }
+            }
+
+            if (empty($team_names)) {
+                continue;
+            }
+
+            $team_names = array_values(array_unique(array_filter(array_map('trim', $team_names))));
+            foreach ($team_names as $team_name) {
+                $entries[] = array(
+                    'comp_id' => $comp_id,
+                    'comp_name' => $comp_name,
+                    'team_name' => $team_name
+                );
+            }
+        }
+
+        return $entries;
+    }
+
+    /**
+     * Convert a competition/team label into a friendly competition name.
+     *
+     * Examples:
+     * - "2026. - Men's State League: Williamstown Lacrosse Club" => "Men's State League"
+     * - "Men's Championship League: Team" => "Men's Championship League"
+     *
+     * @param string $competition_name Raw competition name from settings
+     * @return string Friendly competition name
+     */
+    private function get_friendly_competition_label($competition_name) {
+        $label = trim((string)$competition_name);
+        if ($label === '') {
+            return '';
+        }
+
+        // Remove leading year prefix like "2026. -"
+        $label = preg_replace('/^\s*\d{4}\.\s*-\s*/', '', $label);
+
+        // Keep only text to the left of first colon
+        $colon_pos = strpos($label, ':');
+        if ($colon_pos !== false) {
+            $label = substr($label, 0, $colon_pos);
+        }
+
+        $label = trim($label);
+        return $label !== '' ? $label : trim((string)$competition_name);
+    }
+
+    /**
+     * Sort team entries alphabetically by compact left-column label.
+     *
+     * @param array $team_entries Team entries from get_primary_team_entries_all_competitions
+     * @return array Sorted team entries
+     */
+    private function sort_team_entries_by_friendly_label($team_entries) {
+        if (empty($team_entries) || !is_array($team_entries)) {
+            return array();
+        }
+
+        usort($team_entries, function($a, $b) {
+            $label_a = $this->get_friendly_competition_label(isset($a['comp_name']) ? $a['comp_name'] : '');
+            $label_b = $this->get_friendly_competition_label(isset($b['comp_name']) ? $b['comp_name'] : '');
+
+            $compare = strcasecmp($label_a, $label_b);
+            if ($compare !== 0) {
+                return $compare;
+            }
+
+            $team_a = isset($a['team_name']) ? (string)$a['team_name'] : '';
+            $team_b = isset($b['team_name']) ? (string)$b['team_name'] : '';
+            return strcasecmp($team_a, $team_b);
+        });
+
+        return $team_entries;
+    }
+
+    /**
+     * Render Williamstown team results block
+     */
+    public function render_williamstown_results_block($attributes) {
+        $title = isset($attributes['title']) ? $attributes['title'] : 'Williamstown Team Results';
+        $display_mode = isset($attributes['displayMode']) ? $attributes['displayMode'] : 'text';
+
+        $block_attributes = array(
+            'title' => $title,
+            'displayMode' => $display_mode,
+            'allowCompSync' => false
+        );
+
+        ob_start();
+
+        echo '<div class="wp-block-lacrosse-match-centre-williamstown-results lmc-williamstown-results-block"' . $this->get_block_data_attributes('williamstown-results', $block_attributes) . '>';
+
+        if (!empty($title)) {
+            echo '<h2 class="lmc-block-title">' . esc_html($title) . '</h2>';
+        }
+
+        $competitions = LMC_Data::get_all_competitions();
+        if (empty($competitions)) {
+            echo '<p class="lmc-no-data">No competitions configured. Please add competitions in the admin panel.</p>';
+            echo '</div>';
+            return ob_get_clean();
+        }
+
+        $team_entries = $this->get_primary_team_entries_all_competitions();
+        if (empty($team_entries)) {
+            echo '<p class="lmc-no-data">No primary teams selected. Please choose primary team(s) for each competition in the admin panel.</p>';
+            echo '</div>';
+            return ob_get_clean();
+        }
+        $team_entries = $this->sort_team_entries_by_friendly_label($team_entries);
+
+        echo '<div class="lmc-team-results">';
+
+        foreach ($team_entries as $entry) {
+            $active_team = $entry['team_name'];
+            $team_label = $entry['comp_name'] . ': ' . $active_team;
+            $results = LMC_Data::get_team_results($entry['comp_id'], $active_team, 1);
+
+            echo '<div class="lmc-team-block-section">';
+            echo '<h3 class="lmc-team-block-title">' . esc_html($team_label) . '</h3>';
+
+            if ($results && !empty($results)) {
+                $logos_data = array();
+                foreach ($results as $result) {
+                    if (isset($result['home_logo']) && !empty($result['home_logo'])) {
+                        $logos_data[$result['home_team']] = $result['home_logo'];
+                    }
+                    if (isset($result['away_logo']) && !empty($result['away_logo'])) {
+                        $logos_data[$result['away_team']] = $result['away_logo'];
+                    }
+                }
+
+                $result = $results[0];
+                $is_home = ($result['home_team'] === $active_team);
+                $team_score = $is_home ? $result['home_score'] : $result['away_score'];
+                $opponent_score = $is_home ? $result['away_score'] : $result['home_score'];
+                $opponent_name = $is_home ? $result['away_team'] : $result['home_team'];
+                $venue_prefix = $is_home ? 'vs' : '@';
+                $round_label = !empty($result['round_label']) ? $result['round_label'] : 'Round ' . $result['round'];
+
+                echo '<div class="lmc-result lmc-team-result">';
+                echo '<div class="lmc-result-round">' . esc_html($round_label) . '</div>';
+
+                if (!empty($result['formatted_datetime'])) {
+                    echo '<div class="lmc-result-datetime">' . esc_html($result['formatted_datetime']) . '</div>';
+                } else {
+                    echo '<div class="lmc-result-date">' . esc_html($result['date']) . '</div>';
+                }
+
+                echo '<div class="lmc-result-teams">';
+                echo '<div class="lmc-result-team lmc-result-primary-team ' . ($is_home ? 'lmc-home' : 'lmc-away') . '">';
+                echo $this->render_team_display($active_team, $display_mode, $logos_data);
+                echo '<span class="lmc-result-score">' . esc_html($team_score) . '</span>';
+                echo '</div>';
+                echo '<div class="lmc-result-team lmc-result-opponent ' . ($is_home ? 'lmc-away' : 'lmc-home') . '">';
+                echo $this->render_team_display($opponent_name, $display_mode, $logos_data);
+                echo '<span class="lmc-result-score">' . esc_html($opponent_score) . '</span>';
+                echo '</div>';
+                echo '</div>';
+
+                if (!empty($result['venue'])) {
+                    echo '<div class="lmc-result-venue">' . esc_html($venue_prefix . ' ' . $result['venue']) . '</div>';
+                }
+
+                echo '</div>';
+            } else {
+                echo '<p class="lmc-no-data">No recent results available for ' . esc_html($team_label) . '.</p>';
+            }
+
+            echo '</div>';
+        }
+
+        echo '</div>';
+        echo '</div>';
+
+        return ob_get_clean();
+    }
+
+    /**
+     * Render Williamstown team upcoming block
+     */
+    public function render_williamstown_upcoming_block($attributes) {
+        $title = isset($attributes['title']) ? $attributes['title'] : 'Williamstown Team Upcoming Fixtures';
+        $display_mode = isset($attributes['displayMode']) ? $attributes['displayMode'] : 'text';
+
+        $block_attributes = array(
+            'title' => $title,
+            'displayMode' => $display_mode,
+            'allowCompSync' => false
+        );
+
+        ob_start();
+
+        echo '<div class="wp-block-lacrosse-match-centre-williamstown-upcoming lmc-williamstown-upcoming-block"' . $this->get_block_data_attributes('williamstown-upcoming', $block_attributes) . '>';
+
+        if (!empty($title)) {
+            echo '<h2 class="lmc-block-title">' . esc_html($title) . '</h2>';
+        }
+
+        $competitions = LMC_Data::get_all_competitions();
+        if (empty($competitions)) {
+            echo '<p class="lmc-no-data">No competitions configured. Please add competitions in the admin panel.</p>';
+            echo '</div>';
+            return ob_get_clean();
+        }
+
+        $team_entries = $this->get_primary_team_entries_all_competitions();
+        if (empty($team_entries)) {
+            echo '<p class="lmc-no-data">No primary teams selected. Please choose primary team(s) for each competition in the admin panel.</p>';
+            echo '</div>';
+            return ob_get_clean();
+        }
+        $team_entries = $this->sort_team_entries_by_friendly_label($team_entries);
+
+        echo '<div class="lmc-team-upcoming">';
+
+        foreach ($team_entries as $entry) {
+            $active_team = $entry['team_name'];
+            $team_label = $entry['comp_name'] . ': ' . $active_team;
+            $games = LMC_Data::get_team_upcoming($entry['comp_id'], $active_team, 1);
+
+            echo '<div class="lmc-team-block-section">';
+            echo '<h3 class="lmc-team-block-title">' . esc_html($team_label) . '</h3>';
+
+            if ($games && !empty($games)) {
+                $logos_data = array();
+                foreach ($games as $game) {
+                    if (isset($game['home_logo']) && !empty($game['home_logo'])) {
+                        $logos_data[$game['home_team']] = $game['home_logo'];
+                    }
+                    if (isset($game['away_logo']) && !empty($game['away_logo'])) {
+                        $logos_data[$game['away_team']] = $game['away_logo'];
+                    }
+                }
+
+                $game = $games[0];
+                $is_home = ($game['home_team'] === $active_team);
+                $opponent_name = $is_home ? $game['away_team'] : $game['home_team'];
+                $venue_prefix = $is_home ? 'vs' : '@';
+                $round_label = !empty($game['round_label']) ? $game['round_label'] : 'Round ' . $game['round'];
+
+                echo '<div class="lmc-game lmc-team-game">';
+                echo '<div class="lmc-game-round">' . esc_html($round_label) . '</div>';
+
+                if (!empty($game['formatted_datetime'])) {
+                    echo '<div class="lmc-game-datetime">' . esc_html($game['formatted_datetime']) . '</div>';
+                } else {
+                    echo '<div class="lmc-game-date">' . esc_html($game['date']) . '</div>';
+                    if (!empty($game['time'])) {
+                        echo '<div class="lmc-game-time">' . esc_html($game['time']) . '</div>';
+                    }
+                }
+
+                echo '<div class="lmc-game-teams">';
+                if ($is_home) {
+                    echo '<div class="lmc-team-primary lmc-team-home">' . $this->render_team_display($active_team, $display_mode, $logos_data) . '</div>';
+                    echo '<div class="lmc-vs">vs</div>';
+                    echo '<div class="lmc-team-opponent lmc-team-away">' . $this->render_team_display($opponent_name, $display_mode, $logos_data) . '</div>';
+                } else {
+                    echo '<div class="lmc-team-opponent lmc-team-home">' . $this->render_team_display($opponent_name, $display_mode, $logos_data) . '</div>';
+                    echo '<div class="lmc-vs">vs</div>';
+                    echo '<div class="lmc-team-primary lmc-team-away">' . $this->render_team_display($active_team, $display_mode, $logos_data) . '</div>';
+                }
+                echo '</div>';
+
+                if (!empty($game['venue'])) {
+                    echo '<div class="lmc-game-venue">' . esc_html($venue_prefix . ' ' . $game['venue']) . '</div>';
+                }
+
+                echo '</div>';
+            } else {
+                echo '<p class="lmc-no-data">No upcoming games available for ' . esc_html($team_label) . '.</p>';
+            }
+
+            echo '</div>';
+        }
+
+        echo '</div>';
+        echo '</div>';
+
+        return ob_get_clean();
+    }
+
+    /**
+     * Determine match outcome label and class from team/opponent scores.
+     *
+     * @param mixed $team_score Team score
+     * @param mixed $opponent_score Opponent score
+     * @return array Outcome data
+     */
+    private function get_score_outcome($team_score, $opponent_score) {
+        $outcome = array(
+            'label' => '',
+            'class' => ''
+        );
+
+        if (!is_numeric($team_score) || !is_numeric($opponent_score)) {
+            return $outcome;
+        }
+
+        $team_score = (int)$team_score;
+        $opponent_score = (int)$opponent_score;
+
+        if ($team_score > $opponent_score) {
+            $outcome['label'] = 'Win';
+            $outcome['class'] = 'lmc-outcome-win';
+            return $outcome;
+        }
+
+        if ($team_score < $opponent_score) {
+            $outcome['label'] = 'Loss';
+            $outcome['class'] = 'lmc-outcome-loss';
+            return $outcome;
+        }
+
+        $outcome['label'] = 'Draw';
+        $outcome['class'] = 'lmc-outcome-draw';
+        return $outcome;
+    }
+
+    /**
+     * Render compact Williamstown team results block
+     */
+    public function render_williamstown_results_compact_block($attributes) {
+        $title = isset($attributes['title']) ? $attributes['title'] : 'Williamstown Team Results (Compact)';
+        $display_mode = isset($attributes['displayMode']) ? $attributes['displayMode'] : 'text';
+
+        $block_attributes = array(
+            'title' => $title,
+            'displayMode' => $display_mode,
+            'allowCompSync' => false
+        );
+
+        ob_start();
+
+        echo '<div class="wp-block-lacrosse-match-centre-williamstown-results-compact lmc-williamstown-results-compact-block"' . $this->get_block_data_attributes('williamstown-results-compact', $block_attributes) . '>';
+
+        if (!empty($title)) {
+            echo '<h2 class="lmc-block-title">' . esc_html($title) . '</h2>';
+        }
+
+        $competitions = LMC_Data::get_all_competitions();
+        if (empty($competitions)) {
+            echo '<p class="lmc-no-data">No competitions configured. Please add competitions in the admin panel.</p>';
+            echo '</div>';
+            return ob_get_clean();
+        }
+
+        $team_entries = $this->get_primary_team_entries_all_competitions();
+        if (empty($team_entries)) {
+            echo '<p class="lmc-no-data">No primary teams selected. Please choose primary team(s) for each competition in the admin panel.</p>';
+            echo '</div>';
+            return ob_get_clean();
+        }
+
+        echo '<div class="lmc-williamstown-compact-table">';
+
+        foreach ($team_entries as $entry) {
+            $active_team = $entry['team_name'];
+            $team_label = $this->get_friendly_competition_label($entry['comp_name']);
+            $results = LMC_Data::get_team_results($entry['comp_id'], $active_team, 1);
+
+            echo '<div class="lmc-williamstown-compact-row">';
+            echo '<div class="lmc-williamstown-compact-cell lmc-compact-cell-label">' . esc_html($team_label) . '</div>';
+
+            if ($results && !empty($results)) {
+                $result = $results[0];
+                $is_home = ($result['home_team'] === $active_team);
+                $team_score = $is_home ? $result['home_score'] : $result['away_score'];
+                $opponent_score = $is_home ? $result['away_score'] : $result['home_score'];
+                $opponent_name = $is_home ? $result['away_team'] : $result['home_team'];
+
+                $logos_data = array();
+                if (isset($result['home_logo']) && !empty($result['home_logo'])) {
+                    $logos_data[$result['home_team']] = $result['home_logo'];
+                }
+                if (isset($result['away_logo']) && !empty($result['away_logo'])) {
+                    $logos_data[$result['away_team']] = $result['away_logo'];
+                }
+
+                $outcome = $this->get_score_outcome($team_score, $opponent_score);
+
+                echo '<div class="lmc-williamstown-compact-cell lmc-compact-cell-matchup">';
+                echo '<div class="lmc-compact-matchup-line">';
+                echo $this->render_team_display($active_team, $display_mode, $logos_data);
+                echo '<span class="lmc-compact-vs">vs</span>';
+                echo $this->render_team_display($opponent_name, $display_mode, $logos_data);
+                echo '</div>';
+                echo '</div>';
+
+                echo '<div class="lmc-williamstown-compact-cell lmc-compact-cell-venue">';
+                if (!empty($result['venue'])) {
+                    echo '<span class="lmc-compact-venue">' . esc_html($result['venue']) . '</span>';
+                }
+                echo '</div>';
+
+                echo '<div class="lmc-williamstown-compact-cell lmc-compact-cell-meta">';
+                echo '<div class="lmc-compact-score">' . esc_html($team_score . ' - ' . $opponent_score) . '</div>';
+                if (!empty($outcome['label'])) {
+                    echo '<div class="lmc-compact-outcome ' . esc_attr($outcome['class']) . '">' . esc_html($outcome['label']) . '</div>';
+                }
+                echo '</div>';
+            } else {
+                echo '<div class="lmc-williamstown-compact-cell lmc-compact-cell-matchup lmc-compact-empty">No recent result available</div>';
+                echo '<div class="lmc-williamstown-compact-cell lmc-compact-cell-venue"></div>';
+                echo '<div class="lmc-williamstown-compact-cell lmc-compact-cell-meta"></div>';
+            }
+
+            echo '</div>';
+        }
+
+        echo '</div>';
+        echo '</div>';
+
+        return ob_get_clean();
+    }
+
+    /**
+     * Render compact Williamstown team upcoming block
+     */
+    public function render_williamstown_upcoming_compact_block($attributes) {
+        $title = isset($attributes['title']) ? $attributes['title'] : 'Williamstown Team Upcoming Fixtures (Compact)';
+        $display_mode = isset($attributes['displayMode']) ? $attributes['displayMode'] : 'text';
+
+        $block_attributes = array(
+            'title' => $title,
+            'displayMode' => $display_mode,
+            'allowCompSync' => false
+        );
+
+        ob_start();
+
+        echo '<div class="wp-block-lacrosse-match-centre-williamstown-upcoming-compact lmc-williamstown-upcoming-compact-block"' . $this->get_block_data_attributes('williamstown-upcoming-compact', $block_attributes) . '>';
+
+        if (!empty($title)) {
+            echo '<h2 class="lmc-block-title">' . esc_html($title) . '</h2>';
+        }
+
+        $competitions = LMC_Data::get_all_competitions();
+        if (empty($competitions)) {
+            echo '<p class="lmc-no-data">No competitions configured. Please add competitions in the admin panel.</p>';
+            echo '</div>';
+            return ob_get_clean();
+        }
+
+        $team_entries = $this->get_primary_team_entries_all_competitions();
+        if (empty($team_entries)) {
+            echo '<p class="lmc-no-data">No primary teams selected. Please choose primary team(s) for each competition in the admin panel.</p>';
+            echo '</div>';
+            return ob_get_clean();
+        }
+
+        echo '<div class="lmc-williamstown-compact-table">';
+
+        foreach ($team_entries as $entry) {
+            $active_team = $entry['team_name'];
+            $team_label = $this->get_friendly_competition_label($entry['comp_name']);
+            $games = LMC_Data::get_team_upcoming($entry['comp_id'], $active_team, 1);
+
+            echo '<div class="lmc-williamstown-compact-row">';
+            echo '<div class="lmc-williamstown-compact-cell lmc-compact-cell-label">' . esc_html($team_label) . '</div>';
+
+            if ($games && !empty($games)) {
+                $game = $games[0];
+                $is_home = ($game['home_team'] === $active_team);
+                $opponent_name = $is_home ? $game['away_team'] : $game['home_team'];
+
+                $logos_data = array();
+                if (isset($game['home_logo']) && !empty($game['home_logo'])) {
+                    $logos_data[$game['home_team']] = $game['home_logo'];
+                }
+                if (isset($game['away_logo']) && !empty($game['away_logo'])) {
+                    $logos_data[$game['away_team']] = $game['away_logo'];
+                }
+
+                $datetime_text = '';
+                if (!empty($game['formatted_datetime'])) {
+                    $datetime_text = $game['formatted_datetime'];
+                } else {
+                    $datetime_text = isset($game['date']) ? $game['date'] : '';
+                    if (!empty($game['time'])) {
+                        $datetime_text .= ($datetime_text ? ' ' : '') . $game['time'];
+                    }
+                }
+
+                echo '<div class="lmc-williamstown-compact-cell lmc-compact-cell-matchup">';
+                echo '<div class="lmc-compact-matchup-line">';
+                echo $this->render_team_display($active_team, $display_mode, $logos_data);
+                echo '<span class="lmc-compact-vs">vs</span>';
+                echo $this->render_team_display($opponent_name, $display_mode, $logos_data);
+                echo '</div>';
+                echo '</div>';
+
+                echo '<div class="lmc-williamstown-compact-cell lmc-compact-cell-meta">';
+                if (!empty($datetime_text)) {
+                    echo '<div class="lmc-compact-datetime">' . esc_html($datetime_text) . '</div>';
+                }
+                if (!empty($game['venue'])) {
+                    echo '<div class="lmc-compact-venue">' . esc_html($game['venue']) . '</div>';
+                }
+                echo '</div>';
+            } else {
+                echo '<div class="lmc-williamstown-compact-cell lmc-compact-cell-matchup lmc-compact-empty">No upcoming fixture available</div>';
+                echo '<div class="lmc-williamstown-compact-cell lmc-compact-cell-meta"></div>';
+            }
+
+            echo '</div>';
+        }
+
+        echo '</div>';
+        echo '</div>';
+
+        return ob_get_clean();
+    }
     
     /**
      * Render team results block
@@ -1170,7 +1817,7 @@ class LMC_Blocks {
             }
         }
 
-        $allowed_blocks = array('ladder', 'results', 'upcoming', 'results-upcoming', 'team-results', 'team-upcoming');
+        $allowed_blocks = array('ladder', 'results', 'upcoming', 'results-upcoming', 'team-results', 'team-upcoming', 'williamstown-results', 'williamstown-upcoming', 'williamstown-results-compact', 'williamstown-upcoming-compact');
         if (!in_array($block_type, $allowed_blocks, true)) {
             wp_send_json_error(array('message' => 'Invalid block type'), 400);
         }
@@ -1195,6 +1842,18 @@ class LMC_Blocks {
                 break;
             case 'team-upcoming':
                 $html = $this->render_team_upcoming_block($attributes);
+                break;
+            case 'williamstown-results':
+                $html = $this->render_williamstown_results_block($attributes);
+                break;
+            case 'williamstown-upcoming':
+                $html = $this->render_williamstown_upcoming_block($attributes);
+                break;
+            case 'williamstown-results-compact':
+                $html = $this->render_williamstown_results_compact_block($attributes);
+                break;
+            case 'williamstown-upcoming-compact':
+                $html = $this->render_williamstown_upcoming_compact_block($attributes);
                 break;
             default:
                 $html = '';

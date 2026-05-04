@@ -84,10 +84,8 @@
         ensureBlockAnchor(block);
 
         const attributes = getBlockAttributes(block);
-        if (blockType === 'team-results' || blockType === 'team-upcoming') {
-            if (attributes.allowCompSync === false) {
-                return;
-            }
+        if (attributes.allowCompSync === false) {
+            return;
         }
         const params = new URLSearchParams();
         params.append('action', 'lmc_render_block');

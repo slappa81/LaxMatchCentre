@@ -53,6 +53,74 @@ Displays recent match results.
 3. Configure settings in the block settings panel
 4. Adjust the number of results with the range slider
 
+### 4. Williamstown Team Results Block
+Shows one recent result for each primary team across all configured competitions.
+
+**Block Name:** `lacrosse-match-centre/williamstown-results`
+
+**Settings:**
+- **Title**: Custom heading for the block (default: "Williamstown Team Results")
+- **Display Mode**: Team names only, logos only, or both
+
+**Usage:**
+1. Add a new block in the editor
+2. Search for "Williamstown Team Results"
+3. Configure title/display mode in the block settings panel
+
+**Notes:**
+- Uses each competition's Primary Team(s) from plugin settings
+- Always displays all configured competitions
+- Shows exactly one most recent result per primary team
+
+### 5. Williamstown Team Upcoming Fixtures Block
+Shows one upcoming fixture for each primary team across all configured competitions.
+
+**Block Name:** `lacrosse-match-centre/williamstown-upcoming`
+
+**Settings:**
+- **Title**: Custom heading for the block (default: "Williamstown Team Upcoming Fixtures")
+- **Display Mode**: Team names only, logos only, or both
+
+**Usage:**
+1. Add a new block in the editor
+2. Search for "Williamstown Team Upcoming Fixtures"
+3. Configure title/display mode in the block settings panel
+
+**Notes:**
+- Uses each competition's Primary Team(s) from plugin settings
+- Always displays all configured competitions
+- Shows exactly one next fixture per primary team
+
+### 6. Williamstown Team Results (Compact) Block
+Shows one recent result per primary team using a condensed, row-based layout.
+
+**Block Name:** `lacrosse-match-centre/williamstown-results-compact`
+
+**Settings:**
+- **Title**: Custom heading for the block (default: "Williamstown Team Results (Compact)")
+- **Display Mode**: Team names only, logos only, or both
+
+**Notes:**
+- Compact tabular style intended for dense match-centre views
+- Uses each competition's Primary Team(s)
+- Always displays all configured competitions
+- Shows exactly one most recent result per primary team
+
+### 7. Williamstown Team Upcoming (Compact) Block
+Shows one upcoming fixture per primary team using a condensed, row-based layout.
+
+**Block Name:** `lacrosse-match-centre/williamstown-upcoming-compact`
+
+**Settings:**
+- **Title**: Custom heading for the block (default: "Williamstown Team Upcoming Fixtures (Compact)")
+- **Display Mode**: Team names only, logos only, or both
+
+**Notes:**
+- Compact tabular style intended for dense match-centre views
+- Uses each competition's Primary Team(s)
+- Always displays all configured competitions
+- Shows exactly one upcoming fixture per primary team
+
 ## Adding Blocks to Your Site
 
 ### Using the Block Editor

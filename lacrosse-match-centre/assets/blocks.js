@@ -711,6 +711,286 @@
     });
 
     console.log('Lacrosse Match Centre: Team Upcoming block registered');
+
+    // Williamstown Team Results Block
+    registerBlockType('lacrosse-match-centre/williamstown-results', {
+        title: __('Williamstown Team Results', 'lacrosse-match-centre'),
+        icon: 'awards',
+        category: 'lacrosse-match-centre',
+        attributes: {
+            title: {
+                type: 'string',
+                default: 'Williamstown Team Results'
+            },
+            displayMode: {
+                type: 'string',
+                default: 'text'
+            },
+            allowCompSync: {
+                type: 'boolean',
+                default: false
+            }
+        },
+
+        edit: function(props) {
+            const { attributes, setAttributes } = props;
+
+            return el('div', { className: 'lmc-block-editor' },
+                el(InspectorControls, null,
+                    el(PanelBody, {
+                        title: __('Block Settings', 'lacrosse-match-centre'),
+                        initialOpen: true
+                    },
+                        el(TextControl, {
+                            label: __('Title', 'lacrosse-match-centre'),
+                            value: attributes.title,
+                            onChange: function(value) {
+                                setAttributes({ title: value });
+                            }
+                        }),
+                        el(SelectControl, {
+                            label: __('Display Mode', 'lacrosse-match-centre'),
+                            help: __('Choose how to display team names', 'lacrosse-match-centre'),
+                            value: attributes.displayMode,
+                            options: [
+                                { label: 'Text Only', value: 'text' },
+                                { label: 'Image Only', value: 'image' },
+                                { label: 'Both', value: 'both' }
+                            ],
+                            onChange: function(value) {
+                                setAttributes({ displayMode: value });
+                            }
+                        })
+                    )
+                ),
+                el(Placeholder, {
+                    icon: 'awards',
+                    label: __('Williamstown Team Results', 'lacrosse-match-centre')
+                },
+                    el('div', { style: { textAlign: 'center' } },
+                        el('strong', null, attributes.title || 'Williamstown Team Results'),
+                        el('p', null, __('Shows 1 recent result for each primary team across all competitions.', 'lacrosse-match-centre'))
+                    )
+                )
+            );
+        },
+
+        save: function() {
+            return null;
+        }
+    });
+
+    console.log('Lacrosse Match Centre: Williamstown Team Results block registered');
+
+    // Williamstown Team Upcoming Block
+    registerBlockType('lacrosse-match-centre/williamstown-upcoming', {
+        title: __('Williamstown Team Upcoming Fixtures', 'lacrosse-match-centre'),
+        icon: 'calendar-alt',
+        category: 'lacrosse-match-centre',
+        attributes: {
+            title: {
+                type: 'string',
+                default: 'Williamstown Team Upcoming Fixtures'
+            },
+            displayMode: {
+                type: 'string',
+                default: 'text'
+            },
+            allowCompSync: {
+                type: 'boolean',
+                default: false
+            }
+        },
+
+        edit: function(props) {
+            const { attributes, setAttributes } = props;
+
+            return el('div', { className: 'lmc-block-editor' },
+                el(InspectorControls, null,
+                    el(PanelBody, {
+                        title: __('Block Settings', 'lacrosse-match-centre'),
+                        initialOpen: true
+                    },
+                        el(TextControl, {
+                            label: __('Title', 'lacrosse-match-centre'),
+                            value: attributes.title,
+                            onChange: function(value) {
+                                setAttributes({ title: value });
+                            }
+                        }),
+                        el(SelectControl, {
+                            label: __('Display Mode', 'lacrosse-match-centre'),
+                            help: __('Choose how to display team names', 'lacrosse-match-centre'),
+                            value: attributes.displayMode,
+                            options: [
+                                { label: 'Text Only', value: 'text' },
+                                { label: 'Image Only', value: 'image' },
+                                { label: 'Both', value: 'both' }
+                            ],
+                            onChange: function(value) {
+                                setAttributes({ displayMode: value });
+                            }
+                        })
+                    )
+                ),
+                el(Placeholder, {
+                    icon: 'calendar-alt',
+                    label: __('Williamstown Team Upcoming Fixtures', 'lacrosse-match-centre')
+                },
+                    el('div', { style: { textAlign: 'center' } },
+                        el('strong', null, attributes.title || 'Williamstown Team Upcoming Fixtures'),
+                        el('p', null, __('Shows 1 upcoming fixture for each primary team across all competitions.', 'lacrosse-match-centre'))
+                    )
+                )
+            );
+        },
+
+        save: function() {
+            return null;
+        }
+    });
+
+    console.log('Lacrosse Match Centre: Williamstown Team Upcoming block registered');
+
+    // Williamstown Team Results Compact Block
+    registerBlockType('lacrosse-match-centre/williamstown-results-compact', {
+        title: __('Williamstown Team Results (Compact)', 'lacrosse-match-centre'),
+        icon: 'table-col-after',
+        category: 'lacrosse-match-centre',
+        attributes: {
+            title: {
+                type: 'string',
+                default: 'Williamstown Team Results (Compact)'
+            },
+            displayMode: {
+                type: 'string',
+                default: 'text'
+            },
+            allowCompSync: {
+                type: 'boolean',
+                default: false
+            }
+        },
+
+        edit: function(props) {
+            const { attributes, setAttributes } = props;
+
+            return el('div', { className: 'lmc-block-editor' },
+                el(InspectorControls, null,
+                    el(PanelBody, {
+                        title: __('Block Settings', 'lacrosse-match-centre'),
+                        initialOpen: true
+                    },
+                        el(TextControl, {
+                            label: __('Title', 'lacrosse-match-centre'),
+                            value: attributes.title,
+                            onChange: function(value) {
+                                setAttributes({ title: value });
+                            }
+                        }),
+                        el(SelectControl, {
+                            label: __('Display Mode', 'lacrosse-match-centre'),
+                            help: __('Choose how to display team names', 'lacrosse-match-centre'),
+                            value: attributes.displayMode,
+                            options: [
+                                { label: 'Text Only', value: 'text' },
+                                { label: 'Image Only', value: 'image' },
+                                { label: 'Both', value: 'both' }
+                            ],
+                            onChange: function(value) {
+                                setAttributes({ displayMode: value });
+                            }
+                        })
+                    )
+                ),
+                el(Placeholder, {
+                    icon: 'table-col-after',
+                    label: __('Williamstown Team Results (Compact)', 'lacrosse-match-centre')
+                },
+                    el('div', { style: { textAlign: 'center' } },
+                        el('strong', null, attributes.title || 'Williamstown Team Results (Compact)'),
+                        el('p', null, __('Compact rows: 1 recent result for each primary team across all competitions.', 'lacrosse-match-centre'))
+                    )
+                )
+            );
+        },
+
+        save: function() {
+            return null;
+        }
+    });
+
+    console.log('Lacrosse Match Centre: Williamstown Team Results Compact block registered');
+
+    // Williamstown Team Upcoming Compact Block
+    registerBlockType('lacrosse-match-centre/williamstown-upcoming-compact', {
+        title: __('Williamstown Team Upcoming (Compact)', 'lacrosse-match-centre'),
+        icon: 'table-col-before',
+        category: 'lacrosse-match-centre',
+        attributes: {
+            title: {
+                type: 'string',
+                default: 'Williamstown Team Upcoming Fixtures (Compact)'
+            },
+            displayMode: {
+                type: 'string',
+                default: 'text'
+            },
+            allowCompSync: {
+                type: 'boolean',
+                default: false
+            }
+        },
+
+        edit: function(props) {
+            const { attributes, setAttributes } = props;
+
+            return el('div', { className: 'lmc-block-editor' },
+                el(InspectorControls, null,
+                    el(PanelBody, {
+                        title: __('Block Settings', 'lacrosse-match-centre'),
+                        initialOpen: true
+                    },
+                        el(TextControl, {
+                            label: __('Title', 'lacrosse-match-centre'),
+                            value: attributes.title,
+                            onChange: function(value) {
+                                setAttributes({ title: value });
+                            }
+                        }),
+                        el(SelectControl, {
+                            label: __('Display Mode', 'lacrosse-match-centre'),
+                            help: __('Choose how to display team names', 'lacrosse-match-centre'),
+                            value: attributes.displayMode,
+                            options: [
+                                { label: 'Text Only', value: 'text' },
+                                { label: 'Image Only', value: 'image' },
+                                { label: 'Both', value: 'both' }
+                            ],
+                            onChange: function(value) {
+                                setAttributes({ displayMode: value });
+                            }
+                        })
+                    )
+                ),
+                el(Placeholder, {
+                    icon: 'table-col-before',
+                    label: __('Williamstown Team Upcoming (Compact)', 'lacrosse-match-centre')
+                },
+                    el('div', { style: { textAlign: 'center' } },
+                        el('strong', null, attributes.title || 'Williamstown Team Upcoming Fixtures (Compact)'),
+                        el('p', null, __('Compact rows: 1 upcoming fixture per primary team with date/time and venue.', 'lacrosse-match-centre'))
+                    )
+                )
+            );
+        },
+
+        save: function() {
+            return null;
+        }
+    });
+
+    console.log('Lacrosse Match Centre: Williamstown Team Upcoming Compact block registered');
     console.log('Lacrosse Match Centre: All blocks registered successfully!');
 
 })(window.wp);
