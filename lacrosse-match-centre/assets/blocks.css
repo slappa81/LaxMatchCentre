@@ -102,10 +102,23 @@
 .lmc-ladder-table tbody td {
     padding: 8px;
     border-bottom: 1px solid #e5e7eb;
+    color: #111827 !important;
+}
+
+.lmc-ladder-table tbody tr {
+    background: #ffffff !important;
 }
 
 .lmc-ladder-table tbody tr:hover {
-    background: #f9fafb;
+    background: #f3f4f6 !important;
+}
+
+.lmc-ladder-table tbody tr:nth-child(even) {
+    background: #f2f4f7 !important;
+}
+
+.lmc-ladder-table tbody tr:nth-child(even):hover {
+    background: #e8eaed !important;
 }
 
 .lmc-ladder-table .pos,
@@ -165,6 +178,7 @@
     flex: 1;
     font-weight: 500;
     font-size: 1.1em;
+    color: #111827 !important;
 }
 
 .lmc-team-away {
@@ -388,6 +402,7 @@
 .lmc-result-team-name {
     font-weight: 500;
     font-size: 1.05em;
+    color: #111827 !important;
 }
 
 .lmc-result-score {

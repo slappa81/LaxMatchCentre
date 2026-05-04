@@ -66,23 +66,28 @@
 .lmc-ladder-table td {
     padding: 12px 8px;
     border-bottom: 1px solid #e0e0e0;
+    color: #2c3e50 !important;
+}
+
+.lmc-ladder-table tbody tr {
+    background: #ffffff !important;
 }
 
 .lmc-ladder-table tbody tr:hover {
-    background: #f5f5f5;
+    background: #f5f5f5 !important;
 }
 
 .lmc-ladder-table tbody tr:nth-child(even) {
-    background: #fafafa;
+    background: #f2f4f7 !important;
 }
 
 .lmc-ladder-table tbody tr:nth-child(even):hover {
-    background: #f0f0f0;
+    background: #e8eaed !important;
 }
 
 .lmc-ladder-table td.team {
     font-weight: 500;
-    color: #2c3e50;
+    color: #2c3e50 !important;
 }
 
 .lmc-ladder-table td.points {
@@ -138,7 +143,7 @@
 .lmc-team-home,
 .lmc-team-away {
     font-weight: 600;
-    color: #2c3e50;
+    color: #2c3e50 !important;
     font-size: 15px;
     padding: 5px 0;
 }
@@ -211,7 +216,7 @@
 
 .lmc-result-team-name {
     font-weight: 600;
-    color: #2c3e50;
+    color: #2c3e50 !important;
     font-size: 15px;
     flex: 1;
 }
@@ -299,23 +304,6 @@
 
 /* Dark Mode Support */
 @media (prefers-color-scheme: dark) {
-    .lmc-ladder-table {
-        background: #1e1e1e;
-    }
-    
-    .lmc-ladder-table td {
-        border-bottom-color: #333;
-    }
-    
-    .lmc-ladder-table tbody tr:nth-child(even) {
-        background: #404650;
-    }
-    
-    .lmc-ladder-table tbody tr:hover,
-    .lmc-ladder-table tbody tr:nth-child(even):hover {
-        background: #505860;
-    }
-    
     .lmc-game,
     .lmc-result {
         background: #1e1e1e;
@@ -325,13 +313,6 @@
     .lmc-game:hover,
     .lmc-result:hover {
         box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
-    }
-    
-    .lmc-ladder-table td.team,
-    .lmc-team-home,
-    .lmc-team-away,
-    .lmc-result-team-name {
-        color: #e0e0e0;
     }
     
     .lmc-game-venue,
