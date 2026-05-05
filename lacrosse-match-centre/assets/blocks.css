@@ -523,11 +523,15 @@
 
 .lmc-williamstown-compact-row {
     display: grid;
-    grid-template-columns: minmax(180px, 1.2fr) minmax(200px, 1.5fr) minmax(120px, 0.9fr) minmax(110px, 0.8fr);
+    grid-template-columns: minmax(180px, 1.1fr) minmax(330px, 2fr) minmax(220px, 1.2fr);
     align-items: center;
     gap: 10px;
     padding: 10px 12px;
     border-bottom: 1px solid #e2e8f0;
+}
+
+.lmc-williamstown-results-compact-block .lmc-williamstown-compact-row {
+    grid-template-columns: minmax(155px, 0.85fr) minmax(340px, 2.8fr) minmax(150px, 0.9fr) minmax(105px, 0.65fr);
 }
 
 .lmc-williamstown-compact-row:last-child {
@@ -559,7 +563,9 @@
 }
 
 .lmc-compact-matchup-line .lmc-team-display {
-    max-width: 44%;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
 }
 
 .lmc-compact-matchup-line .lmc-team-name {
@@ -579,6 +585,7 @@
 
 .lmc-compact-cell-meta {
     text-align: right;
+    justify-self: end;
 }
 
 .lmc-compact-score {

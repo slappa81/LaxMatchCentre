@@ -1282,6 +1282,7 @@ class LMC_Blocks {
             echo '</div>';
             return ob_get_clean();
         }
+        $team_entries = $this->sort_team_entries_by_friendly_label($team_entries);
 
         echo '<div class="lmc-williamstown-compact-table">';
 
@@ -1379,6 +1380,7 @@ class LMC_Blocks {
             echo '</div>';
             return ob_get_clean();
         }
+        $team_entries = $this->sort_team_entries_by_friendly_label($team_entries);
 
         echo '<div class="lmc-williamstown-compact-table">';
 
@@ -1412,6 +1414,7 @@ class LMC_Blocks {
                         $datetime_text .= ($datetime_text ? ' ' : '') . $game['time'];
                     }
                 }
+                $datetime_text = trim(preg_replace('/\s+/', ' ', str_replace('/', ' ', $datetime_text)));
 
                 echo '<div class="lmc-williamstown-compact-cell lmc-compact-cell-matchup">';
                 echo '<div class="lmc-compact-matchup-line">';
