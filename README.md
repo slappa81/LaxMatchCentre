@@ -27,6 +27,5 @@ A complete WordPress plugin for displaying lacrosse league data from GameDay. Th
 
 Use the admin discovery panel or WP-CLI to find competition IDs quickly.
 
-- Quick start: [COMPETITION-DISCOVERY-QUICKSTART.md](COMPETITION-DISCOVERY-QUICKSTART.md)
-- Full guide: [lacrosse-match-centre/COMPETITION-DISCOVERY.md](lacrosse-match-centre/COMPETITION-DISCOVERY.md)
 - API + CLI details: [lacrosse-match-centre/API-REFERENCE.md](lacrosse-match-centre/API-REFERENCE.md)
+- Behavior spec: [openspec/specs/competition-discovery/spec.md](openspec/specs/competition-discovery/spec.md)

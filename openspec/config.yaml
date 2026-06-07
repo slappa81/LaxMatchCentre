@@ -1,0 +1,51 @@
+schema: spec-driven
+
+context: |
+  Project: Lacrosse Match Centre — a self-contained WordPress plugin that
+  displays lacrosse league data (ladders, fixtures, upcoming games, results)
+  sourced from the public GameDay / SportsTG competition website.
+
+  Tech stack:
+    - PHP 7.0+ (procedural + OOP WordPress plugin)
+    - WordPress 5.0+ (Widgets API, Settings API, Transient API, HTTP API,
+      Block/Gutenberg API, WP-CLI, WP-Cron)
+    - HTML parsing via DOMDocument + DOMXPath
+    - Front-end: vanilla JavaScript + CSS3 (no build step)
+    - Storage: JSON files on disk + WordPress transient cache
+
+  Architecture (see ARCHITECTURE.md):
+    - LMC_Scraper  — fetches and parses GameDay HTML into JSON
+    - LMC_Data     — reads JSON, applies transient caching, formats data
+    - LMC_Admin    — settings page, competition/team management, AJAX handlers
+    - LMC_Blocks   — Gutenberg blocks (ladder, upcoming, results, team/club variants)
+    - LMC_*_Widget — classic sidebar widgets (ladder, upcoming, results)
+    - LMC_CLI      — WP-CLI commands for discovery and scraping
+    - Data flow: GameDay -> Scraper -> JSON files -> Data layer (cache) -> Widgets/Blocks -> Frontend
+
+  Conventions:
+    - All classes prefixed LMC_, options/transients prefixed lmc_.
+    - Constants: LMC_VERSION, LMC_PLUGIN_DIR, LMC_PLUGIN_URL, LMC_DATA_DIR.
+    - Data files named <type>-<comp_id>.json (ladder, fixtures, upcoming, results).
+    - Settings stored in the single lmc_settings option.
+    - Escape all output (esc_html/esc_attr); sanitize all input at boundaries;
+      verify nonces and capabilities on every AJAX handler.
+    - Target timezone for source data is Australia/Melbourne; display converts
+      to the site timezone.
+    - No external Composer/npm dependencies; ship as a drop-in plugin.
+
+  Domain notes:
+    - "Competition" = a GameDay competition identified by a comp_id
+      (e.g. 0-1064-0-646414-0). An "association" id (e.g. 1064) groups seasons
+      and competitions used for discovery.
+    - "Williamstown" blocks are club-specific convenience variants of the
+      generic team blocks for Williamstown Lacrosse Club.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
